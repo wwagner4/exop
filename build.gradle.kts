@@ -13,6 +13,7 @@ repositories {
 }
 
 dependencies {
+    implementation("org.jdom:jdom2:2.0.6.1")
     testImplementation(kotlin("test"))
 }
 
