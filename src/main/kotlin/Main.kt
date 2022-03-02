@@ -5,20 +5,47 @@ import java.nio.file.Path
 import kotlin.streams.toList
 import java.nio.file.Path.of as pathOf
 
-data class Star(val name: String)
+data class Planet(val name: String, val radius: Double?, val period: Double?)
+data class Star(val name: String, val radius: Double?, val planets: List<Planet>)
 data class SolarSystem(val name: String, val star: Star)
 
 
 fun main() {
     val files = catFiles()
     //val files = testFiles()
-    val solSysts = files.take(100000).mapNotNull { readSystem(it) }
-    printAllSolSys(solSysts)
+    val solSysts = files.take(10000000).mapNotNull { readSystem(it) }
+    printAllObjects(solSysts)
+}
+
+private fun toDouble(elem: Element, name: String): Double? {
+    val radiusList = elem.children
+        .filter { it.name == name }
+        .map {
+            when {
+                it.text.isEmpty() -> null
+                else -> it.text.toDouble()
+            }
+        }
+    return when {
+        radiusList.isEmpty() -> null
+        else -> radiusList[0]
+    }
 }
 
 private fun toStar(starElem: Element): Star {
-    val names = starElem.children.filter { it.name == "name" }.map { it.text }
-    return Star(names[0])
+    return Star(
+        name = starElem.children.filter { it.name == "name" }.map { it.text }.first(),
+        radius = toDouble(starElem, "radius"),
+        planets = starElem.children.filter { it.name == "planet" }.map { toPlanet(it) }
+    )
+}
+
+private fun toPlanet(elem: Element): Planet {
+    return Planet(
+        name = elem.children.filter { it.name == "name" }.map { it.text }.first(),
+        radius = toDouble(elem, "radius"),
+        period = toDouble(elem, "period")
+    )
 }
 
 private fun catFiles(): List<Path> {
@@ -33,7 +60,7 @@ private fun testFiles(): List<Path> {
     return catFiles(catDir, "test_catalog")
 }
 
-private fun <T> printAllSolSys(obj: List<T>) {
+private fun <T> printAllObjects(obj: List<T>) {
     obj.withIndex().forEach {
         println("${it.index} - ${it.value}")
     }
@@ -52,9 +79,10 @@ private fun readSystem(file: Path): SolarSystem? {
     val stars = solSys.children.filter { it.name == "star" }.map { toStar(it) }
     val star = when {
         stars.isEmpty() -> null
-        stars.size == 1 -> stars[0]
+        stars.size == 1 && stars[0].planets.isNotEmpty() -> stars[0]
+        stars.size == 1 -> null
         else -> throw IllegalStateException("System $sysName has more than one sun")
     }
-    return star?.let { SolarSystem(sysName, it)}
+    return star?.let { SolarSystem(sysName, it) }
 }
 
