@@ -2,6 +2,7 @@ import org.jdom2.Element
 import org.jdom2.input.SAXBuilder
 import java.nio.file.Files
 import java.nio.file.Path
+import kotlin.math.*
 import kotlin.streams.toList
 import java.nio.file.Path.of as pathOf
 
@@ -11,6 +12,17 @@ data class SolarSystem(val name: String, val star: Star)
 
 
 fun main() {
+    solarSys()
+}
+
+fun largeSemiAxis(period: Double, mass1: Double, mass2: Double): Double {
+    val g = 6.667408e-11
+    val m = mass1 + mass2
+    val a = period * period * g * m / (PI * PI * 4.0)
+    return a.pow(1.0 / 3)
+}
+
+private fun solarSys() {
     val files = catFiles()
     //val files = testFiles()
     val solSysts = files.take(10000000).mapNotNull { readSystem(it) }
@@ -18,19 +30,16 @@ fun main() {
 }
 
 private fun toDouble(elem: Element, name: String): Double? {
-    val radiusList = elem.children
+    return elem.children
         .filter { it.name == name }
         .map {
             when {
                 it.text.isEmpty() -> null
                 else -> it.text.toDouble()
             }
-        }
-    return when {
-        radiusList.isEmpty() -> null
-        else -> radiusList[0]
-    }
+        }.firstOrNull()
 }
+
 
 private fun toStar(starElem: Element): Star {
     return Star(
@@ -85,4 +94,5 @@ private fun readSystem(file: Path): SolarSystem? {
     }
     return star?.let { SolarSystem(sysName, it) }
 }
+
 
