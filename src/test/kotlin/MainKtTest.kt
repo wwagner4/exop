@@ -4,15 +4,15 @@ import org.junit.jupiter.params.provider.CsvSource
 
 internal class MainKtTest {
 
-    private val massSun = 1.989e30
+    private val massSun = 1.989e30 // kg
     private val secondsInDay = 24.0 * 60 * 60
-    private val au = 149597870e3
+    private val au = 149597870e3 // m
 
     @ParameterizedTest
     @CsvSource(
         "87.66, 0.39",
         "226.455, 0.72",
-        "365.25, 1.0",
+        "365.256363004, 1.0",
         "686.67, 1.52",
         "4331.865, 5.2",
         "10756.6125, 9.54",
