@@ -6,11 +6,21 @@ import org.jdom2.input.SAXBuilder
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.math.*
-import kotlin.streams.toList
 import java.nio.file.Path.of as pathOf
 
-data class Planet(val name: String, val radius: Double?, val period: Double?)
-data class Star(val name: String, val radius: Double?, val planets: List<Planet>)
+data class Planet(
+    val name: String,
+    val radius: Double?, // in radius jupiter. radius jupiter = 71492km
+    val period: Double?  // in days
+)
+
+data class Star(
+    val name: String,
+    val radius: Double?, // in radius sun. radius sun = 696342km
+    val mass: Double?, // in solar masses
+    val planets: List<Planet>
+)
+
 data class SolarSystem(val name: String, val star: Star)
 
 
@@ -29,6 +39,14 @@ fun main(args: Array<String>) {
     solarSys(catalog)
 }
 
+/**
+ * Calculates the large semi axis of a planet
+ *
+ * @param period in seconds
+ * @param mass1 in kg
+ * @param mass2 in kg
+ * @return large semi axis (distance) m
+ */
 fun largeSemiAxis(period: Double, mass1: Double, mass2: Double): Double {
     val g = 6.667408e-11
     val m = mass1 + mass2
@@ -61,7 +79,8 @@ private fun toStar(starElem: Element): Star {
     return Star(
         name = starElem.children.filter { it.name == "name" }.map { it.text }.first(),
         radius = toDouble(starElem, "radius"),
-        planets = starElem.children.filter { it.name == "planet" }.map { toPlanet(it) }
+        planets = starElem.children.filter { it.name == "planet" }.map { toPlanet(it) },
+        mass = toDouble(starElem, "mass"),
     )
 }
 
@@ -75,6 +94,7 @@ private fun toPlanet(elem: Element): Planet {
 
 private fun catFiles(): List<Path> {
     val catPath = System.getenv("CATALOGUE")
+        ?: throw IllegalStateException("Environment variable CATALOGUE must be defined")
     val catDir = pathOf(catPath)
     val catNames = listOf("systems", "systems_kepler")
     return catNames.flatMap { catFiles(catDir, it) }
