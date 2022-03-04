@@ -1,3 +1,6 @@
+import kotlinx.cli.ArgParser
+import kotlinx.cli.ArgType
+import kotlinx.cli.default
 import org.jdom2.Element
 import org.jdom2.input.SAXBuilder
 import java.nio.file.Files
@@ -11,8 +14,19 @@ data class Star(val name: String, val radius: Double?, val planets: List<Planet>
 data class SolarSystem(val name: String, val star: Star)
 
 
-fun main() {
-    solarSys()
+enum class Catalog { OEC, TEST }
+
+fun main(args: Array<String>) {
+    val parser = ArgParser("example")
+    val input by parser.option(
+        ArgType.String,
+        shortName = "c",
+        description = "catalog. OEC(open exoplanet catalog), TEST"
+    ).default("OEC")
+
+    parser.parse(args)
+    val catalog = Catalog.valueOf(input)
+    solarSys(catalog)
 }
 
 fun largeSemiAxis(period: Double, mass1: Double, mass2: Double): Double {
@@ -22,10 +36,12 @@ fun largeSemiAxis(period: Double, mass1: Double, mass2: Double): Double {
     return a.pow(1.0 / 3)
 }
 
-private fun solarSys() {
-    val files = catFiles()
-    //val files = testFiles()
-    val solSysts = files.take(10000000).mapNotNull { readSystem(it) }
+private fun solarSys(catalog: Catalog) {
+    val files = when (catalog) {
+        Catalog.OEC -> catFiles()
+        Catalog.TEST -> testFiles()
+    }
+    val solSysts = files.take(10).mapNotNull { readSystem(it) }
     printAllObjects(solSysts)
 }
 

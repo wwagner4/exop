@@ -14,7 +14,8 @@ repositories {
 
 dependencies {
     implementation("org.jdom:jdom2:2.0.6.1")
-    implementation("org.junit.jupiter:junit-jupiter:5.8.1")
+    implementation("org.junit.jupiter:junit-jupiter:5.8.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-cli:0.3.4")
     testImplementation(kotlin("test"))
 }
 
