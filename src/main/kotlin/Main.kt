@@ -31,7 +31,7 @@ data class SolarSystem(val name: String, val star: Star)
 
 
 enum class Catalog { OEC, TEST }
-enum class Action { SVG, TRYOUT, NAMES }
+enum class Action { SVG, SVG_TEST, TRYOUT, NAMES }
 
 fun main(args: Array<String>) {
     val parser = ArgParser("example")
@@ -44,13 +44,14 @@ fun main(args: Array<String>) {
     val actionStr by parser.option(
         ArgType.String,
         shortName = "a",
-        description = "action. SVG, TRYOUT"
+        description = "action. SVG(default), SVG_TEST, TRYOUT"
     ).default("SVG")
 
     parser.parse(args)
     val catalog = Catalog.valueOf(catStr)
     when (Action.valueOf(actionStr)) {
         Action.SVG -> SVG.create(catalog)
+        Action.SVG_TEST -> SVG.createTest(catalog)
         Action.TRYOUT -> tryout(catalog)
         Action.NAMES -> printAllNames(catalog)
     }
@@ -63,28 +64,32 @@ object SVG {
 
     fun create(catalog: Catalog) {
         println("create svg for catalog: $catalog")
+    }
+
+    fun createTest(catalog: Catalog) {
+        println("create test svg for catalog: $catalog")
 
         val outDir = Path.of("target", "svg")
         if (Files.notExists(outDir)) Files.createDirectories(outDir)
 
-
         val document = Document()
-
         val root = svgElem("svg")
-
         root.setAttribute("viewBox", "0 0 600 600")
 
-        root.addContent(planet(Point(40.0, 50.0), 20.0))
-        root.addContent(sun(Point(46.0, 55.0), 30.0))
-        root.addContent(sun(Point(45.0, 56.55), 130.0))
-        root.addContent(planet(Point(55.0, 44.0), 10.0))
-        root.addContent(line(Point(10.0, 10.0), Point(200.0, 500.0)))
-        root.addContent(line(Point(10.0, 10.0), Point(200.0, 510.0)))
-        root.addContent(line(Point(10.0, 10.0), Point(200.0, 520.0)))
-        root.addContent(text(Point(10.0, 200.0), "hallo wolfi"))
-        root.addContent(text(Point(11.0, 400.0), "I like DJ"))
-        document.setContent(root)
+        val elems = listOf(
+            planet(Point(40.0, 50.0), 20.0),
+            sun(Point(46.0, 55.0), 30.0),
+            sun(Point(45.0, 56.55), 130.0),
+            planet(Point(55.0, 44.0), 10.0),
+            line(Point(10.0, 10.0), Point(200.0, 500.0)),
+            line(Point(10.0, 10.0), Point(200.0, 510.0)),
+            line(Point(10.0, 10.0), Point(200.0, 520.0)),
+            text(Point(10.0, 200.0), "hallo wolfi"),
+            text(Point(11.0, 400.0), "I like DJ"),
+        )
+        elems.forEach { root.addContent(it) }
 
+        document.setContent(root)
         try {
             val outFile = outDir.resolve("t1.svg")
             val writer = FileWriter(outFile.toFile())
