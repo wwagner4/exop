@@ -25,18 +25,32 @@ data class SolarSystem(val name: String, val star: Star)
 
 
 enum class Catalog { OEC, TEST }
+enum class Action { SVG, TRYOUT }
 
 fun main(args: Array<String>) {
     val parser = ArgParser("example")
-    val input by parser.option(
+    val catStr by parser.option(
         ArgType.String,
         shortName = "c",
         description = "catalog. OEC(open exoplanet catalog), TEST"
     ).default("OEC")
 
+    val actionStr by parser.option(
+        ArgType.String,
+        shortName = "a",
+        description = "action. SVG, TRYOUT"
+    ).default("SVG")
+
     parser.parse(args)
-    val catalog = Catalog.valueOf(input)
-    solarSys(catalog)
+    val catalog = Catalog.valueOf(catStr)
+    when (Action.valueOf(actionStr)) {
+        Action.SVG -> svg(catalog)
+        Action.TRYOUT -> solarSys(catalog)
+    }
+}
+
+fun svg(catalog: Catalog) {
+    println("create svg for catalog: $catalog")
 }
 
 /**
