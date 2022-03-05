@@ -66,17 +66,24 @@ object SVG {
         println("create svg for catalog: $catalog")
     }
 
-    fun createTest(catalog: Catalog) {
-        println("create test svg for catalog: $catalog")
-
-        val outDir = Path.of("target", "svg")
-        if (Files.notExists(outDir)) Files.createDirectories(outDir)
-
-        val document = Document()
+    private fun writeSvg(outFile: Path, createElems: () -> List<Element>) {
         val root = svgElem("svg")
         root.setAttribute("viewBox", "0 0 600 600")
 
-        val elems = listOf(
+        createElems().forEach { root.addContent(it) }
+
+        val document = Document()
+        document.setContent(root)
+        val writer = FileWriter(outFile.toFile())
+        val outputter = XMLOutputter()
+        outputter.format = Format.getPrettyFormat()
+        outputter.output(document, writer)
+        println("Wrote file to ${outFile.absolute()}")
+    }
+
+    fun createTest(catalog: Catalog) {
+
+        fun testElems(): List<Element> = listOf(
             planet(Point(40.0, 50.0), 20.0),
             sun(Point(46.0, 55.0), 30.0),
             sun(Point(45.0, 56.55), 130.0),
@@ -87,19 +94,14 @@ object SVG {
             text(Point(10.0, 200.0), "hallo wolfi"),
             text(Point(11.0, 400.0), "I like DJ"),
         )
-        elems.forEach { root.addContent(it) }
 
-        document.setContent(root)
-        try {
-            val outFile = outDir.resolve("t1.svg")
-            val writer = FileWriter(outFile.toFile())
-            val outputter = XMLOutputter()
-            outputter.format = Format.getPrettyFormat()
-            outputter.output(document, writer)
-            println("Wrote file to ${outFile.absolute()}")
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        println("create test svg for catalog: $catalog")
+        val outDir = Path.of("target", "svg")
+        val outFile = outDir.resolve("t2.svg")
+
+        if (Files.notExists(outDir)) Files.createDirectories(outDir)
+
+        writeSvg(outFile) { testElems() }
     }
 
     private fun planet(center: Point, r: Double): Element {
