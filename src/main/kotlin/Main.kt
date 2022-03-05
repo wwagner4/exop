@@ -57,23 +57,11 @@ fun main(args: Array<String>) {
 }
 
 object SVG {
-
-    private enum class Font(val declaration: String) {
-        Purisa("@font-face { font-family: exop; src: url('/usr/share/fonts/truetype/tlwg/Purisa.ttf'); }"),
-        Karumbi("@font-face { font-family: exop; src: url('/usr/share/fonts/truetype/malayalam/Karumbi-Regular.ttf'); }"),
-        FreeMono("@font-face { font-family: exop; src: url('/usr/share/fonts/truetype/freefont/FreeMono.ttf'); }"),
-        UbuntuLight("@font-face { font-family: exop; src: url('/usr/share/fonts/truetype/ubuntu/Ubuntu-L.ttf'); }"),
-        Ubuntu("@font-face { font-family: exop; src: url('/usr/share/fonts/truetype/ubuntu/Ubuntu-M.ttf'); }"),
-        UrwBook("@font-face { font-family: exop; src: url('/usr/share/fonts/opentype/urw-base35/URWGothic-Book.otf'); }"),
-        UrwDemi("@font-face { font-family: exop; src: url('/usr/share/fonts/opentype/urw-base35/URWGothic-Demi.otf'); }"),
-    }
-
     private val svgNamespace = Namespace.getNamespace("http://www.w3.org/2000/svg")
 
     private data class Point(val x: Double, val y: Double)
 
     fun create(catalog: Catalog) {
-        val font = Font.valueOf("UrwBook")
         println("create svg for catalog: $catalog")
 
         val outDir = Path.of("target", "svg")
@@ -82,25 +70,19 @@ object SVG {
 
         val document = Document()
 
-        val root = Element("svg")
-        root.namespace = svgNamespace
+        val root = svgElem("svg")
 
         root.setAttribute("viewBox", "0 0 600 600")
-
-        val style = svgElem("style")
-        style.setAttribute("type", "text/css")
-        style.text = font.declaration
-        val defs = svgElem("defs")
-        defs.addContent(style)
-        root.addContent(defs)
 
         root.addContent(planet(Point(40.0, 50.0), 20.0))
         root.addContent(sun(Point(46.0, 55.0), 30.0))
         root.addContent(sun(Point(45.0, 56.55), 130.0))
         root.addContent(planet(Point(55.0, 44.0), 10.0))
-        root.addContent(line(Point(10.0, 10.0), Point(20.0, 100.0)))
-        root.addContent(text(Point(10.0, 100.0), "hallo wolfi"))
-        root.addContent(text(Point(11.0, 200.0), "I like DJ"))
+        root.addContent(line(Point(10.0, 10.0), Point(200.0, 500.0)))
+        root.addContent(line(Point(10.0, 10.0), Point(200.0, 510.0)))
+        root.addContent(line(Point(10.0, 10.0), Point(200.0, 520.0)))
+        root.addContent(text(Point(10.0, 200.0), "hallo wolfi"))
+        root.addContent(text(Point(11.0, 400.0), "I like DJ"))
         document.setContent(root)
 
         try {
@@ -156,8 +138,8 @@ object SVG {
         elem.setAttribute("y", origin.y.f())
         elem.setAttribute("fill", "blue")
         elem.setAttribute("opacity", "0.3")
-        elem.setAttribute("font-family", "exop")
-        elem.setAttribute("font-size", "4em")
+        elem.setAttribute("font-family", "sans-serif")
+        elem.setAttribute("font-size", "6em")
         elem.text = text
         return elem
     }
