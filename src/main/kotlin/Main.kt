@@ -33,6 +33,8 @@ data class SolarSystem(val name: String, val star: Star)
 enum class Catalog { OEC, TEST }
 enum class Action { SVG, SVG_TEST, TRYOUT, NAMES }
 
+private val au = 149597870e3 // m
+
 fun main(args: Array<String>) {
     val parser = ArgParser("example")
     val catStr by parser.option(
@@ -162,13 +164,13 @@ object SVG {
  * @param period in seconds
  * @param mass1 in kg
  * @param mass2 in kg
- * @return large semi axis (distance) m
+ * @return large semi axis (distance) in au (astronomic units)
  */
 fun largeSemiAxis(period: Double, mass1: Double, mass2: Double): Double {
     val g = 6.667408e-11
     val m = mass1 + mass2
     val a = period * period * g * m / (PI * PI * 4.0)
-    return a.pow(1.0 / 3)
+    return a.pow(1.0 / 3) / au
 }
 
 private fun tryout(catalog: Catalog) {
