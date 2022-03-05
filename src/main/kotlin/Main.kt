@@ -1,10 +1,16 @@
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
 import kotlinx.cli.default
+import org.jdom2.Document
 import org.jdom2.Element
+import org.jdom2.Namespace
 import org.jdom2.input.SAXBuilder
+import org.jdom2.output.Format
+import org.jdom2.output.XMLOutputter
+import java.io.FileWriter
 import java.nio.file.Files
 import java.nio.file.Path
+import kotlin.io.path.absolute
 import kotlin.math.*
 import java.nio.file.Path.of as pathOf
 
@@ -25,7 +31,7 @@ data class SolarSystem(val name: String, val star: Star)
 
 
 enum class Catalog { OEC, TEST }
-enum class Action { SVG, TRYOUT }
+enum class Action { SVG, TRYOUT, NAMES }
 
 fun main(args: Array<String>) {
     val parser = ArgParser("example")
@@ -44,13 +50,121 @@ fun main(args: Array<String>) {
     parser.parse(args)
     val catalog = Catalog.valueOf(catStr)
     when (Action.valueOf(actionStr)) {
-        Action.SVG -> svg(catalog)
-        Action.TRYOUT -> solarSys(catalog)
+        Action.SVG -> SVG.create(catalog)
+        Action.TRYOUT -> tryout(catalog)
+        Action.NAMES -> printAllNames(catalog)
     }
 }
 
-fun svg(catalog: Catalog) {
-    println("create svg for catalog: $catalog")
+object SVG {
+
+    private enum class Font(val declaration: String) {
+        Purisa("@font-face { font-family: exop; src: url('/usr/share/fonts/truetype/tlwg/Purisa.ttf'); }"),
+        Karumbi("@font-face { font-family: exop; src: url('/usr/share/fonts/truetype/malayalam/Karumbi-Regular.ttf'); }"),
+        FreeMono("@font-face { font-family: exop; src: url('/usr/share/fonts/truetype/freefont/FreeMono.ttf'); }"),
+        UbuntuLight("@font-face { font-family: exop; src: url('/usr/share/fonts/truetype/ubuntu/Ubuntu-L.ttf'); }"),
+        Ubuntu("@font-face { font-family: exop; src: url('/usr/share/fonts/truetype/ubuntu/Ubuntu-M.ttf'); }"),
+        UrwBook("@font-face { font-family: exop; src: url('/usr/share/fonts/opentype/urw-base35/URWGothic-Book.otf'); }"),
+        UrwDemi("@font-face { font-family: exop; src: url('/usr/share/fonts/opentype/urw-base35/URWGothic-Demi.otf'); }"),
+    }
+
+    private val svgNamespace = Namespace.getNamespace("http://www.w3.org/2000/svg")
+
+    private data class Point(val x: Double, val y: Double)
+
+    fun create(catalog: Catalog) {
+        val font = Font.valueOf("UrwBook")
+        println("create svg for catalog: $catalog")
+
+        val outDir = Path.of("target", "svg")
+        if (Files.notExists(outDir)) Files.createDirectories(outDir)
+
+
+        val document = Document()
+
+        val root = Element("svg")
+        root.namespace = svgNamespace
+
+        root.setAttribute("viewBox", "0 0 600 600")
+
+        val style = svgElem("style")
+        style.setAttribute("type", "text/css")
+        style.text = font.declaration
+        val defs = svgElem("defs")
+        defs.addContent(style)
+        root.addContent(defs)
+
+        root.addContent(planet(Point(40.0, 50.0), 20.0))
+        root.addContent(sun(Point(46.0, 55.0), 30.0))
+        root.addContent(sun(Point(45.0, 56.55), 130.0))
+        root.addContent(planet(Point(55.0, 44.0), 10.0))
+        root.addContent(line(Point(10.0, 10.0), Point(20.0, 100.0)))
+        root.addContent(text(Point(10.0, 100.0), "hallo wolfi"))
+        root.addContent(text(Point(11.0, 200.0), "I like DJ"))
+        document.setContent(root)
+
+        try {
+            val outFile = outDir.resolve("t1.svg")
+            val writer = FileWriter(outFile.toFile())
+            val outputter = XMLOutputter()
+            outputter.format = Format.getPrettyFormat()
+            outputter.output(document, writer)
+            println("Wrote file to ${outFile.absolute()}")
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun planet(center: Point, r: Double): Element {
+        return circle(center, r, "blue")
+    }
+
+    private fun sun(center: Point, r: Double): Element {
+        return circle(center, r, "green")
+    }
+
+    private fun svgElem(name: String): Element {
+        val elem = Element(name)
+        elem.namespace = svgNamespace
+        return elem
+    }
+
+    private fun circle(center: Point, r: Double, color: String): Element {
+        val elem = svgElem("circle")
+        elem.setAttribute("cx", center.x.f())
+        elem.setAttribute("cy", center.y.f())
+        elem.setAttribute("r", r.f())
+        elem.setAttribute("opacity", "0.3")
+        elem.setAttribute("fill", color)
+        return elem
+    }
+
+    private fun line(from: Point, to: Point): Element {
+        val elem = svgElem("line")
+        elem.setAttribute("x1", from.x.f())
+        elem.setAttribute("y1", from.y.f())
+        elem.setAttribute("x2", to.x.f())
+        elem.setAttribute("y2", to.y.f())
+        elem.setAttribute("opacity", "0.3")
+        elem.setAttribute("style", "stroke:blue;stroke-width:2")
+        return elem
+    }
+
+    private fun text(origin: Point, text: String): Element {
+        val elem = svgElem("text")
+        elem.setAttribute("x", origin.x.f())
+        elem.setAttribute("y", origin.y.f())
+        elem.setAttribute("fill", "blue")
+        elem.setAttribute("opacity", "0.3")
+        elem.setAttribute("font-family", "exop")
+        elem.setAttribute("font-size", "4em")
+        elem.text = text
+        return elem
+    }
+
+    private fun Double.f(): String {
+        return "%.3f".format(this)
+    }
 }
 
 /**
@@ -68,13 +182,29 @@ fun largeSemiAxis(period: Double, mass1: Double, mass2: Double): Double {
     return a.pow(1.0 / 3)
 }
 
-private fun solarSys(catalog: Catalog) {
+private fun tryout(catalog: Catalog) {
+    val solSysList = readCatalog(catalog, 50)
+    printAllObjects(solSysList)
+}
+
+private fun printAllNames(catalog: Catalog) {
+    val solSysList = readCatalog(catalog, 51)
+    val starNames = solSysList.map { it.star.name }
+    val planetNames = solSysList.map { it.star.planets }.flatMap { it.map { iti -> iti.name } }
+    printAllObjects(starNames)
+    println("-----------------------------------------------")
+    printAllObjects(planetNames)
+    val all = (starNames + planetNames).joinToString(separator = " ")
+    println()
+    println(all)
+}
+
+private fun readCatalog(catalog: Catalog, maxNumber: Int): List<SolarSystem> {
     val files = when (catalog) {
         Catalog.OEC -> catFiles()
         Catalog.TEST -> testFiles()
     }
-    val solSysts = files.take(10).mapNotNull { readSystem(it) }
-    printAllObjects(solSysts)
+    return files.take(maxNumber).mapNotNull { readSystem(it) }
 }
 
 private fun toDouble(elem: Element, name: String): Double? {
