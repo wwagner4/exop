@@ -16,6 +16,7 @@ import java.nio.file.Path.of as pathOf
 
 data class Planet(
     val name: String,
+    val dist: Double?, // in au (astronomic units)
     val radius: Double?, // in radius jupiter. radius jupiter = 71492km
     val period: Double?  // in days
 )
@@ -211,19 +212,36 @@ private fun toDouble(elem: Element, name: String): Double? {
 
 
 private fun toStar(starElem: Element): Star {
+    val starMass = toDouble(starElem, "mass")
+    val starName = starElem.children.filter { it.name == "name" }.map { it.text }.first()
     return Star(
-        name = starElem.children.filter { it.name == "name" }.map { it.text }.first(),
+        name = starName,
         radius = toDouble(starElem, "radius"),
-        planets = starElem.children.filter { it.name == "planet" }.map { toPlanet(it) },
-        mass = toDouble(starElem, "mass"),
+        planets = starElem.children.filter { it.name == "planet" }.map { toPlanet(it, starName, starMass) },
+        mass = starMass,
     )
 }
 
-private fun toPlanet(elem: Element): Planet {
+private fun toPlanet(elem: Element, starName: String, starMass: Double?): Planet {
+    val name = elem.children.filter { it.name == "name" }.map { it.text }.first()
+    val planetPeriod = toDouble(elem, "period")
+
+    fun planetName(): String {
+        if (name.startsWith(starName)) {
+            return name.substring(starName.length).trim()
+        }
+        return name
+    }
+
+    fun dist(): Double? {
+        if (planetPeriod != null && starMass != null) return largeSemiAxis(planetPeriod, 0.0, starMass)
+        return null
+    }
     return Planet(
-        name = elem.children.filter { it.name == "name" }.map { it.text }.first(),
+        name = planetName(),
         radius = toDouble(elem, "radius"),
-        period = toDouble(elem, "period")
+        period = planetPeriod,
+        dist = dist()
     )
 }
 
