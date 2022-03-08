@@ -1,3 +1,5 @@
+package exop
+
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
@@ -22,7 +24,5 @@ internal class MainKtTest {
         val a = largeSemiAxis(period * secondsInDay, 0.0, massSun)
         assertEquals(exp, a, 0.1)
     }
-
-
 
 }

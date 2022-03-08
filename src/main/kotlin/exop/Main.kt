@@ -1,3 +1,5 @@
+package exop
+
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
 import kotlinx.cli.default
@@ -31,8 +33,11 @@ data class Star(
 data class SolarSystem(val name: String, val star: Star)
 
 
-enum class Catalog { OEC, TEST }
-enum class Action { SVG, SVG_TEST, TRYOUT, NAMES }
+@Suppress("EnumEntryName")
+enum class Catalog { oec, test }
+
+@Suppress("EnumEntryName")
+enum class Action { svg, svgt, tryout, names }
 
 private const val au = 149597870e3 // m
 const val massSun: Double = 1.989e30 // kg
@@ -40,26 +45,29 @@ const val secondsInDay = 24.0 * 60 * 60
 
 
 fun main(args: Array<String>) {
-    val parser = ArgParser("example")
-    val catStr by parser.option(
-        ArgType.String,
+    val parser = ArgParser("exop")
+    val catalog by parser.option(
+        ArgType.Choice<Catalog>(),
         shortName = "c",
-        description = "catalog. OEC(open exoplanet catalog), TEST"
-    ).default("OEC")
+        description = "star system catalog"
+    ).default(Catalog.oec)
 
-    val actionStr by parser.option(
-        ArgType.String,
+    val action by parser.option(
+        ArgType.Choice<Action>(),
         shortName = "a",
-        description = "action. SVG(default), SVG_TEST, TRYOUT"
-    ).default("SVG")
+        description = "Action to be run"
+    ).default(Action.svg)
 
-    parser.parse(args)
-    val catalog = Catalog.valueOf(catStr)
-    when (Action.valueOf(actionStr)) {
-        Action.SVG -> SVG.create(catalog)
-        Action.SVG_TEST -> SVG.createTest(catalog)
-        Action.TRYOUT -> tryout(catalog)
-        Action.NAMES -> printAllNames(catalog)
+    try {
+        parser.parse(args)
+        when (action) {
+            Action.svg -> SVG.create(catalog)
+            Action.svgt -> SVG.createTest(catalog)
+            Action.tryout -> tryout(catalog)
+            Action.names -> printAllNames(catalog)
+        }
+    } catch (e: IllegalStateException) {
+        println("ERROR: ${e.message}")
     }
 }
 
@@ -278,7 +286,7 @@ fun loadSolSystemInner(): SolarSystem {
 
 private fun tryout(catalog: Catalog) {
     println("Tryout with catalog $catalog")
-    loadSolSystemInner().star.planets.forEach { println(it) }
+    loadSolarSystem().star.planets.map { it.name }.forEach { println(it) }
 }
 
 private fun printAllNames(catalog: Catalog) {
@@ -295,8 +303,8 @@ private fun printAllNames(catalog: Catalog) {
 
 private fun readCatalog(catalog: Catalog, maxNumber: Int): List<SolarSystem> {
     val files = when (catalog) {
-        Catalog.OEC -> catFiles()
-        Catalog.TEST -> testFiles()
+        Catalog.oec -> catFiles()
+        Catalog.test -> testFiles()
     }
     return files.take(maxNumber).mapNotNull { readSystem(it) }
 }
