@@ -6,7 +6,6 @@ internal class MainKtTest {
 
     private val massSun = 1.989e30 // kg
     private val secondsInDay = 24.0 * 60 * 60
-    private val au = 149597870e3 // m
 
     @ParameterizedTest
     @CsvSource(
@@ -21,7 +20,7 @@ internal class MainKtTest {
     )
     fun largeSemiAxis2(period: Double, exp: Double) {
         val a = largeSemiAxis(period * secondsInDay, 0.0, massSun)
-        assertEquals(exp, a / au, 0.1)
+        assertEquals(exp, a, 0.1)
     }
 
 
