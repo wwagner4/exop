@@ -37,7 +37,13 @@ data class SolarSystem(val name: String, val star: Star)
 enum class Catalog { oec, test }
 
 @Suppress("EnumEntryName")
-enum class Action { svg, svgt, tryout, names }
+enum class Action(val description: String) {
+    i01("Image. Comparison to the inner solar system"),
+    i02("Image. Earthlike planets"),
+    svgt("Test svg creation"),
+    tryout("Helpful during development"),
+    names("Names of systems and planets")
+}
 
 private const val au = 149597870e3 // m
 const val massSun: Double = 1.989e30 // kg
@@ -52,16 +58,16 @@ fun main(args: Array<String>) {
         description = "star system catalog"
     ).default(Catalog.oec)
 
-    val action by parser.option(
+    val action by parser.argument(
         ArgType.Choice<Action>(),
-        shortName = "a",
-        description = "Action to be run"
-    ).default(Action.svg)
+        description = argDescription()
+    )
 
     try {
         parser.parse(args)
         when (action) {
-            Action.svg -> SVG.create(catalog)
+            Action.i01 -> SVG.create(catalog)
+            Action.i02 -> throw IllegalStateException("i01: Not yet implemented")
             Action.svgt -> SVG.createTest(catalog)
             Action.tryout -> tryout(catalog)
             Action.names -> printAllNames(catalog)
@@ -69,6 +75,11 @@ fun main(args: Array<String>) {
     } catch (e: IllegalStateException) {
         println("ERROR: ${e.message}")
     }
+}
+
+private fun argDescription(): String {
+    val table: String = Action.values().joinToString("\n") { "              %7s : %s}".format(it.name, it.description) }
+    return "Descriptions: \n$table"
 }
 
 object SVG {
