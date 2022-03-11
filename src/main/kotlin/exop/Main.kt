@@ -144,11 +144,17 @@ object SVG {
                             solarPlanet(Point(px, y), 10.0 * (it.radius ?: 0.2) / maxPlanetRadius),
                             text(it.name, Point(px, y - vertDist * 0.15))
                         )
-                    else
+                    else {
+                        val elemPlanet =
+                            if (it.radius != null) planet(Point(px, y), 10.0 * it.radius / maxPlanetRadius)
+                            else planetIndifferent(Point(px, y), 10.0 * 0.2 / maxPlanetRadius)
                         listOf(
-                            planet(Point(px, y), 10.0 * (it.radius ?: 0.2) / maxPlanetRadius),
+                            elemPlanet,
                             text(it.name, Point(px, y - vertDist * 0.15))
                         )
+
+                    }
+
                 }
             }
 
@@ -165,7 +171,7 @@ object SVG {
             planet(Point(40.0, 50.0), 20.0),
             star(Point(46.0, 55.0), 30.0),
             star(Point(45.0, 56.55), 130.0),
-            planet(Point(55.0, 44.0), 10.0),
+            planetIndifferent(Point(55.0, 44.0), 22.9),
             line(Point(10.0, 10.0), Point(200.0, 500.0)),
             line(Point(10.0, 10.0), Point(200.0, 510.0)),
             line(Point(10.0, 10.0), Point(200.0, 520.0)),
@@ -198,7 +204,11 @@ object SVG {
     }
 
     private fun planet(center: Point, r: Double): Element {
-        return circle(center, r, "blue", 0.3)
+        return circle(center, r, "blue", 0.6)
+    }
+
+    private fun planetIndifferent(center: Point, r: Double): Element {
+        return circle(center, r, "blue", 0.45)
     }
 
     private fun solarPlanet(center: Point, r: Double): Element {
@@ -206,7 +216,7 @@ object SVG {
     }
 
     private fun star(center: Point, r: Double): Element {
-        return circle(center, r, "orange", 0.34)
+        return circle(center, r, "orange", 0.6)
     }
 
     private fun sun(center: Point, r: Double): Element {

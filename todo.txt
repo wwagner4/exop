@@ -1,10 +1,10 @@
 drawing3
-    - Show planets with unknown radius different. e.g. more transparent
     - enable creation of two images. i01 'Inner Solar System', i02 'Earthlike'
     - create i02
     done
     - do not use 'open exoplanets catalog' as submodule
     - define better cli. e.g. -action as argument
+    - Show planets with unknown radius different. e.g. more transparent
 
 - make a dockerfile for easy build and deployment
 - make solar system testcase by names
