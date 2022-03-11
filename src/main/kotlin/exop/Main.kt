@@ -13,6 +13,7 @@ import java.io.FileWriter
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.absolute
+import kotlin.io.path.name
 import kotlin.math.*
 import java.nio.file.Path.of as pathOf
 
@@ -66,8 +67,8 @@ fun main(args: Array<String>) {
     try {
         parser.parse(args)
         when (action) {
-            Action.i01 -> SVG.create(catalog)
-            Action.i02 -> throw IllegalStateException("i01: Not yet implemented")
+            Action.i01 -> SVG.i01(action, catalog)
+            Action.i02 -> SVG.i02(action, catalog)
             Action.svgt -> SVG.createTest(catalog)
             Action.tryout -> tryout(catalog)
             Action.names -> printAllNames(catalog)
@@ -90,79 +91,193 @@ object SVG {
 
     private data class Point(val x: Number, val y: Number)
 
-    private fun greatestDist(solarSystem: SolarSystem): Double? {
-        return solarSystem.star.planets.mapNotNull { it.dist }.maxOrNull()
-    }
+    fun i01(action: Action, catalog: Catalog) {
+        println("creating image ${action.name} (${action.description}) for catalog: $catalog")
 
-    fun create(catalog: Catalog) {
-
-        fun isValidSys(syst: SolarSystem): Boolean {
-            val dist = greatestDist(syst)
-            return dist != null && dist < 3.0 && dist > 0.7 && syst.star.radius != null && syst.star.radius < 5.0
+        fun isValidSys(syst: SolarSystem, distMars: Double): Boolean {
+            val dist = maxPlanetDist(syst)
+            return dist != null && dist < 1.2 * distMars && dist > 0.9 * distMars && syst.star.radius != null
         }
 
-        println("create svg for catalog: $catalog")
-        val canvas = Canvas(1000, 600)
+        val sol = loadSolarSystemInner()
+        val distMars = maxPlanetDist(sol) ?: throw IllegalStateException("Could not calculate distance of Mars")
 
-        val solarSystems = readCatalog(catalog, 1000).filter { isValidSys(it) } + listOf(loadSolSystemInner())
-        val maxSystemDist = solarSystems.flatMap { it.star.planets }.mapNotNull { it.dist }.maxOrNull()
-            ?: throw IllegalStateException("Could not calculate maximum distance system")
-        val maxSunRadius =
-            solarSystems.mapNotNull { it.star.radius }.maxOrNull() ?: throw IllegalStateException("no sun with radius")
-        val maxPlanetRadius = solarSystems.flatMap { it.star.planets }.mapNotNull { it.radius }.maxOrNull()
-            ?: throw IllegalStateException("Could not calculate maximum planet radius")
+        val solarSystems = loadCatalog(catalog).filter { isValidSys(it, distMars) } + listOf(loadSolarSystemInner())
+        val canvas = Canvas(1000, 600)
         val borderX = 20.0
         val borderY = 50.0
+
+        val maxSystemDist = solarSystems.flatMap { it.star.planets }.mapNotNull { it.dist }.maxOrNull()
+            ?: throw IllegalStateException("Could not calculate max system distance")
+        val maxStarRadius = solarSystems.mapNotNull { it.star.radius }.maxOrNull()
+            ?: throw IllegalStateException("Could not calculate maxStarRadius")
+        val maxPlanetRadius = solarSystems.flatMap { it.star.planets }.mapNotNull { it.radius }.maxOrNull()
+            ?: throw IllegalStateException("Could not calculate maximum planet radius")
         val vertDist = (canvas.height - 2 * borderY) / (solarSystems.size - 1)
 
-        val outDir = Path.of("target", "svg")
-        val outFile = outDir.resolve("dr1.svg")
-        if (Files.notExists(outDir)) Files.createDirectories(outDir)
+        val outDir = getCreateOutDir()
+        val outFile = outDir.resolve("${action.name}.svg")
 
         fun solSysElems(solarSystem: SolarSystem, index: Int): List<Element> {
-            val isSol = solarSystem.name == "SOL"
-            val systemDist = greatestDist(solarSystem)
+            val isSol = solarSystem.name == "Sun"
+            val systemDist = maxPlanetDist(solarSystem)
                 ?: throw IllegalStateException("solar system with no planet ${solarSystem.name}")
-            val paintSystemDist = (canvas.width - 2 * borderY) * systemDist / maxSystemDist
-            val y = index * vertDist + borderY
-            val sunRadiusPaint = vertDist * (solarSystem.star.radius ?: 1.0) / maxSunRadius
 
-            val lineElem = line(Point(borderX, y), Point(borderX + paintSystemDist, y))
+            val paintY = index * vertDist + borderY
+
+            val paintSystemDist = (canvas.width - 2 * borderX) * systemDist / maxSystemDist
+            val lineElem = planetLine(Point(borderX, paintY), Point(borderX + paintSystemDist, paintY))
+
+            val paintRadiusStar = vertDist * (solarSystem.star.radius ?: 1.0) / maxStarRadius
             val starElem =
-                if (isSol) sun(Point(borderX, y), sunRadiusPaint)
-                else star(Point(borderX, y), sunRadiusPaint)
+                if (isSol) sun(Point(borderX, paintY), paintRadiusStar)
+                else star(Point(borderX, paintY), paintRadiusStar)
 
-            val starTxtElem = text(solarSystem.star.name, Point(borderX, y - vertDist * 0.15), textAnchorLeft = true)
+            val starTxtElem = text(
+                solarSystem.star.name, Point(borderX, paintY - vertDist * 0.15),
+                textAnchorLeft = true
+            )
 
             val planetElems = solarSystem.star.planets.flatMap {
-                if (it.dist == null) listOf<Element>()
+                if (it.dist == null) listOf()
                 else {
-                    val paintDistPlanet = (canvas.width - 2 * borderY) * it.dist / maxSystemDist
+                    val paintDistPlanet = (canvas.width - 2 * borderX) * it.dist / maxSystemDist
                     val px = borderX + paintDistPlanet
                     if (isSol)
                         listOf(
-                            solarPlanet(Point(px, y), 10.0 * (it.radius ?: 0.2) / maxPlanetRadius),
-                            text(it.name, Point(px, y - vertDist * 0.15))
+                            solarPlanet(Point(px, paintY), 10.0 * (it.radius ?: 0.2) / maxPlanetRadius),
+                            text(it.name, Point(px, paintY - vertDist * 0.15))
                         )
                     else {
                         val elemPlanet =
-                            if (it.radius != null) planet(Point(px, y), 10.0 * it.radius / maxPlanetRadius)
-                            else planetIndifferent(Point(px, y), 10.0 * 0.2 / maxPlanetRadius)
+                            if (it.radius != null) planet(Point(px, paintY), 10.0 * it.radius / maxPlanetRadius)
+                            else planetIndifferent(Point(px, paintY), 10.0 * 0.2 / maxPlanetRadius)
                         listOf(
                             elemPlanet,
-                            text(it.name, Point(px, y - vertDist * 0.15))
+                            text(it.name, Point(px, paintY - vertDist * 0.15))
                         )
-
                     }
-
                 }
             }
 
             return listOf(lineElem, starElem) + planetElems + starTxtElem
         }
 
-        val elems = solarSystems.sortedBy { greatestDist(it) }.withIndex().flatMap { (i, sys) -> solSysElems(sys, i) }
+        val elems = solarSystems.sortedBy { maxPlanetDist(it) }.withIndex().flatMap { (i, sys) -> solSysElems(sys, i) }
         writeSvg(outFile, canvas) { elems }
+    }
+
+    fun i02(action: Action, catalogId: Catalog) {
+
+        val numberOfSystems = 40
+
+        data class Syst(
+            val minEarthDist: Double,
+            val solarSystem: SolarSystem,
+        )
+
+        val sol = loadSolarSystemInner()
+
+        val earth = sol.star.planets.first { it.name == "Earth" }
+        val earthDist = earth.dist!!
+
+        fun minEarthDist(solarSystem: SolarSystem): Syst? {
+            data class Dist(
+                val dist: Double,
+                val distAbs: Double,
+            )
+
+            val earthDists = solarSystem.star.planets.mapNotNull { it.dist }.map { it - earthDist }
+            if (earthDists.isEmpty()) return null
+            val minDist: Dist? = earthDists.map { Dist(it, abs(it)) }.minByOrNull { it.distAbs }
+            return Syst(minDist!!.dist, solarSystem)
+        }
+
+        println("creating image '${action.description}' for catalog: $catalogId")
+
+        val solarSystemsDists: Map<Boolean, List<Syst>> =
+            loadCatalog(catalogId).mapNotNull { minEarthDist(it) }.groupBy { it.minEarthDist < 0 }
+        val smaller = solarSystemsDists[true]!!.sortedBy { -it.minEarthDist }.map { it.solarSystem }
+        val greater = solarSystemsDists[false]!!.sortedBy { it.minEarthDist }.map { it.solarSystem }
+
+        val n = (numberOfSystems / 2.0).toInt()
+        val solarSystems = smaller.take(n).reversed() + listOf(sol) + greater.take(n)
+        val canvas = Canvas(1000, 600)
+        val borderX = 40.0
+        val borderY = 20.0
+
+        val maxSystemDist = 1.7
+        val maxStarRadius = solarSystems.mapNotNull { it.star.radius }.maxOrNull()
+            ?: throw IllegalStateException("Could not calculate maxStarRadius")
+        val maxPlanetRadius = solarSystems.flatMap { it.star.planets }.mapNotNull { it.radius }.maxOrNull()
+            ?: throw IllegalStateException("Could not calculate maximum planet radius")
+        val vertDist = (canvas.height - 2 * borderY) / (solarSystems.size - 1)
+
+        val outDir = getCreateOutDir()
+        val outFile = outDir.resolve("${action.name}.svg")
+
+        val bgElem = rect(Point(0, 0), canvas.width.toDouble(), canvas.height.toDouble(), color = "white")
+
+        fun solSysElems(solarSystem: SolarSystem, index: Int): List<Element> {
+            val isSol = solarSystem.name == "Sun"
+            val systemDist = maxPlanetDist(solarSystem)
+                ?: throw IllegalStateException("solar system with no planet ${solarSystem.name}")
+
+            val paintY = index * vertDist + borderY
+
+            val paintSystemDist = (canvas.width - 2 * borderX) * systemDist / maxSystemDist
+            val paintMaxSystemDist = (canvas.width - borderX)
+            val lineElem =
+                planetLine(Point(borderX, paintY), Point(min(borderX + paintSystemDist, paintMaxSystemDist), paintY))
+
+            val paintRadiusStar = vertDist * (solarSystem.star.radius ?: 1.0) / maxStarRadius
+            val starElem =
+                if (isSol) sun(Point(borderX, paintY), paintRadiusStar)
+                else star(Point(borderX, paintY), paintRadiusStar)
+
+            val starTxtElem = text(
+                solarSystem.star.name, Point(borderX, paintY - vertDist * 0.15),
+                textAnchorLeft = true
+            )
+
+            val planetElems = solarSystem.star.planets.flatMap {
+                if (it.dist == null) listOf()
+                else {
+                    val paintDistPlanet = (canvas.width - 2 * borderX) * it.dist / maxSystemDist
+                    val px = borderX + paintDistPlanet
+                    if (px > paintMaxSystemDist) listOf()
+                    else if (isSol)
+                        listOf(
+                            solarPlanet(Point(px, paintY), 10.0 * (it.radius ?: 0.2) / maxPlanetRadius),
+                            text(it.name, Point(px, paintY - vertDist * 0.15))
+                        )
+                    else {
+                        val elemPlanet =
+                            if (it.radius != null) planet(Point(px, paintY), 10.0 * it.radius / maxPlanetRadius)
+                            else planetIndifferent(Point(px, paintY), 10.0 * 0.2 / maxPlanetRadius)
+                        listOf(
+                            elemPlanet,
+                            text(it.name, Point(px, paintY - vertDist * 0.15))
+                        )
+                    }
+                }
+            }
+
+            return listOf(lineElem, starElem) + planetElems + starTxtElem
+        }
+
+        val imgElems = solarSystems.withIndex().flatMap { (i, sys) -> solSysElems(sys, i) }
+        writeSvg(outFile, canvas) { listOf(bgElem) + imgElems }
+    }
+
+    private fun getCreateOutDir(): Path {
+        val outDir = Path.of("target", "images")
+        if (Files.notExists(outDir)) Files.createDirectories(outDir)
+        return outDir
+    }
+
+    private fun maxPlanetDist(solarSystem: SolarSystem): Double? {
+        return solarSystem.star.planets.mapNotNull { it.dist }.maxOrNull()
     }
 
     fun createTest(catalog: Catalog) {
@@ -204,11 +319,15 @@ object SVG {
     }
 
     private fun planet(center: Point, r: Double): Element {
-        return circle(center, r, "blue", 0.6)
+        return circle(center, r, "green", 0.8)
     }
 
     private fun planetIndifferent(center: Point, r: Double): Element {
-        return circle(center, r, "blue", 0.45)
+        return circle(center, r, "green", 0.4)
+    }
+
+    private fun planetLine(from: Point, to: Point): Element {
+        return line(from, to)
     }
 
     private fun solarPlanet(center: Point, r: Double): Element {
@@ -216,11 +335,11 @@ object SVG {
     }
 
     private fun star(center: Point, r: Double): Element {
-        return circle(center, r, "orange", 0.6)
+        return circle(center, r, "orange", 0.8)
     }
 
     private fun sun(center: Point, r: Double): Element {
-        return circle(center, r, "red", 0.6)
+        return circle(center, r, "red", 0.9)
     }
 
     private fun svgElem(name: String): Element {
@@ -239,14 +358,37 @@ object SVG {
         return elem
     }
 
-    private fun line(from: Point, to: Point): Element {
+    private fun line(
+        from: Point,
+        to: Point,
+        strokeWidth: Double = 0.1,
+        color: String = "green",
+        opacity: Double = 0.8
+    ): Element {
         val elem = svgElem("line")
         elem.setAttribute("x1", from.x.f())
         elem.setAttribute("y1", from.y.f())
         elem.setAttribute("x2", to.x.f())
         elem.setAttribute("y2", to.y.f())
-        elem.setAttribute("opacity", "0.3")
-        elem.setAttribute("style", "stroke:blue;stroke-width:0.1")
+        elem.setAttribute("opacity", opacity.f())
+        elem.setAttribute("style", "stroke:$color;stroke-width:${strokeWidth.f()}")
+        return elem
+    }
+
+    private fun rect(
+        origin: Point,
+        width: Double,
+        height: Double,
+        color: String,
+        opacity: Double = 1.0,
+    ): Element {
+        val elem = svgElem("rect")
+        elem.setAttribute("x", origin.x.f())
+        elem.setAttribute("y", origin.y.f())
+        elem.setAttribute("width", width.f())
+        elem.setAttribute("height", height.f())
+        elem.setAttribute("opacity", opacity.f())
+        elem.setAttribute("style", "fill:$color;")
         return elem
     }
 
@@ -255,7 +397,7 @@ object SVG {
         text: String,
         origin: Point,
         color: String = "blue",
-        opacity: Double = 0.3,
+        opacity: Double = 0.8,
         size: Double = 0.2,
         textAnchorLeft: Boolean = false
     ): Element {
@@ -272,7 +414,7 @@ object SVG {
     }
 
     private fun Number.f(): String {
-        return "%.3f".format(this)
+        return "%.3f".format(this.toDouble())
     }
 }
 
@@ -293,11 +435,11 @@ fun largeSemiAxis(period: Double, mass1: Double, mass2: Double): Double {
 
 
 fun loadSolarSystem(): SolarSystem {
-    val path = Path.of("src", "main", "resources", "SOL.xml")
+    val path = catFiles().first { it.name == "Sun.xml" }
     return readSystem(path) ?: throw IllegalStateException("found no data at $path")
 }
 
-fun loadSolSystemInner(): SolarSystem {
+fun loadSolarSystemInner(): SolarSystem {
     val solSyst = loadSolarSystem()
     val innerNames = listOf("Mercury", "Venus", "Earth", "Mars")
     val planetsInner = solSyst.star.planets.filter { innerNames.contains(it.name) }
@@ -311,7 +453,7 @@ private fun tryout(catalog: Catalog) {
 }
 
 private fun printAllNames(catalog: Catalog) {
-    val solSysList = readCatalog(catalog, 51)
+    val solSysList = loadCatalog(catalog, 51)
     val starNames = solSysList.map { it.star.name }
     val planetNames = solSysList.map { it.star.planets }.flatMap { it.map { iti -> iti.name } }
     printAllObjects(starNames)
@@ -322,9 +464,9 @@ private fun printAllNames(catalog: Catalog) {
     println(all)
 }
 
-private fun readCatalog(catalog: Catalog, maxNumber: Int): List<SolarSystem> {
-    val files = when (catalog) {
-        Catalog.oec -> catFiles()
+private fun loadCatalog(catalogId: Catalog, maxNumber: Int = Int.MAX_VALUE): List<SolarSystem> {
+    val files = when (catalogId) {
+        Catalog.oec -> catFiles().filter { it.fileName.toString() != "Sun.xml" }
         Catalog.test -> testFiles()
     }
     return files.take(maxNumber).mapNotNull { readSystem(it) }
