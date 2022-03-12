@@ -8,21 +8,22 @@ internal class MainKtTest {
 
     private val massSun = 1.989e30 // kg
     private val secondsInDay = 24.0 * 60 * 60
+    private val sol = loadSolarSystem()
 
     @ParameterizedTest
     @CsvSource(
-        "87.66, 0.39",
-        "226.455, 0.72",
-        "365.256363004, 1.0",
-        "686.67, 1.52",
-        "4331.865, 5.2",
-        "10756.6125, 9.54",
-        "30688.305, 19.19",
-        "60189.5475, 30.07"
+        "Mercury, 0.39",
+        "Venus, 0.72",
+        "Earth, 1.0",
+        "Mars, 1.52",
+        "Jupiter, 5.2",
+        "Saturn, 9.54",
+        "Uranus, 19.19",
+        "Neptune, 30.07"
     )
-    fun largeSemiAxis2(period: Double, exp: Double) {
-        val a = largeSemiAxis(period * secondsInDay, 0.0, massSun)
-        assertEquals(exp, a, 0.1)
+    fun largeSemiAxis(name: String, expectedDist: Double) {
+        val planet = sol.star.planets.first { it.name == name }
+        val dist = largeSemiAxis(planet.period!! * secondsInDay, 0.0, massSun)
+        assertEquals(expectedDist, dist, 0.1)
     }
-
 }

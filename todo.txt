@@ -1,10 +1,10 @@
 tech01
     - make a dockerfile for easy build and deployment
-    - read sol from resources
     - make some svg rendering
     work
-    - make solar system testcase by names
+    - read sol from resources
     done
+    - make solar system testcase by names
     - make some common functions between i01, i02
 
 img_improve
