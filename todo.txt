@@ -1,19 +1,22 @@
+tech01
+    - make some common functions between i01, i02
+    - make a dockerfile for easy build and deployment
+    - make solar system testcase by names
+    - read sol from resources
+    - make some svg rendering
+
+img_improve
+    - write star name if it is different to system name
+    - scale text size
+    - add title
+    - add explanation text
+
+done
 drawing3
-    - create i02
     done
     - do not use 'open exoplanets catalog' as submodule
     - define better cli. e.g. -action as argument
     - Show planets with unknown radius different. e.g. more transparent
     - enable creation of two images. i01 'Inner Solar System', i02 'Earthlike'
-
-- make some common functions between i01, i02
-- make a dockerfile for easy build and deployment
-- make solar system testcase by names
-- read sol from resources
-- write star name if it is different to system name
-- scale text size
-- add title
-- add explanation text
-- make some svg rendering
 
 ------------------------------------------------------------------------------
