@@ -1,19 +1,20 @@
-tech01
-    - make a dockerfile for easy build and deployment
-    - make some svg rendering
-    work
-    - read sol from resources
-    done
-    - make solar system testcase by names
-    - make some common functions between i01, i02
-
 img_improve
     - write star name if it is different to system name
     - scale text size
     - add title
     - add explanation text
 
+tech02
+    - delete test resources
+    - make solar system testcase by names
+    - make some common functions between i01, i02
+
 done
+tech01
+    - make some svg rendering
+    - make a dockerfile for easy build and deployment
+
+
 drawing3
     done
     - do not use 'open exoplanets catalog' as submodule
