@@ -1,9 +1,11 @@
 tech01
-    - make some common functions between i01, i02
     - make a dockerfile for easy build and deployment
-    - make solar system testcase by names
     - read sol from resources
     - make some svg rendering
+    work
+    - make solar system testcase by names
+    done
+    - make some common functions between i01, i02
 
 img_improve
     - write star name if it is different to system name
