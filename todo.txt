@@ -1,19 +1,30 @@
+== current milestone
+
 img_improve
-    - write star name if it is different to system name
+    - write
     - scale text size
     - add title
-    - add explanation text
+    - add a legend
+    - add explanation text, legend
+work
+done
+    - write star name if it is different to system name
+
+---------------------------------------------------------------------------
+== open milestones
 
 tech02
-    - delete test resources
-    - make solar system testcase by names
-    - make some common functions between i01, i02
-
-done
-tech01
     - make some svg rendering
     - make a dockerfile for easy build and deployment
 
+----------------------------------------------------------------------------
+==done milestones
+
+tech01
+    - Move Svg to separate file
+    - delete test resources
+    - make solar system testcase by names
+    - make some common functions between i01, i02
 
 drawing3
     done
@@ -22,4 +33,3 @@ drawing3
     - Show planets with unknown radius different. e.g. more transparent
     - enable creation of two images. i01 'Inner Solar System', i02 'Earthlike'
 
-------------------------------------------------------------------------------

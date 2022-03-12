@@ -24,11 +24,17 @@ data class Planet(
 )
 
 data class Star(
-    val name: String,
+    val names: List<String>,
     val radius: Double?, // in radius sun. radius sun = 696342km
     val mass: Double?, // in solar masses
     val planets: List<Planet>
-)
+) {
+    val name: String
+        get() {
+            return StarName.starName(names)
+        }
+
+}
 
 data class SolarSystem(val name: String, val star: Star)
 
@@ -39,7 +45,6 @@ enum class Action(val description: String) {
     all("Image. All images"),
     svgt("Test svg creation"),
     tryout("Helpful during development"),
-    names("Names of systems and planets")
 }
 
 private const val au = 149597870e3 // m
@@ -63,7 +68,6 @@ fun main(args: Array<String>) {
             }
             Action.svgt -> SVG.createTest()
             Action.tryout -> tryout()
-            Action.names -> printAllNames()
         }
     } catch (e: IllegalStateException) {
         println("ERROR: ${e.message}")
@@ -158,10 +162,7 @@ object SVG {
                                 Point(px, paintSystemY),
                                 planetSizeFactor * paintVertDist * it.radius / allSystemParameters.maxPlanetRadius
                             )
-                            else planetIndifferent(
-                                Point(px, paintSystemY),
-                                planetSizeFactor * paintVertDist * 0.2 / allSystemParameters.maxPlanetRadius
-                            )
+                            else planetUnknownRadius(Point(px, paintSystemY), paintVertDist)
                         listOf(
                             elemPlanet,
                             text(it.name, Point(px, paintSystemY - paintVertDist * 0.15))
@@ -222,11 +223,12 @@ object SVG {
         val allParams = allSystemParameters(solarSystems)
 
         val vertDist = (canvas.height - 2 * borderY) / (solarSystems.size - 1)
-
+        val textOffset = vertDist * 0.1
         val outDir = getCreateOutDir()
         val outFile = outDir.resolve("${name}.svg")
 
         val bgElem = rect(Point(0, 0), canvas.width.toDouble(), canvas.height.toDouble(), color = "white")
+
 
         fun solSysElems(solarSystem: SolarSystem, index: Int): List<Element> {
             val isSol = solarSystem.name == "Sun"
@@ -245,10 +247,13 @@ object SVG {
                 if (isSol) sun(Point(borderX, paintY), paintRadiusStar)
                 else star(Point(borderX, paintY), paintRadiusStar)
 
-            val starTxtElem = text(
-                solarSystem.star.name, Point(borderX, paintY - vertDist * 0.15),
+            val systemTxtElem = text(
+                solarSystem.name, Point(borderX - textOffset, paintY - textOffset),
                 textAnchorLeft = true
             )
+            val starTxtElem =
+                if (solarSystem.name == solarSystem.star.name) null
+                else text(solarSystem.star.name, Point(borderX + textOffset, paintY - textOffset))
 
             val planetElems = solarSystem.star.planets.flatMap {
                 if (it.dist == null) listOf()
@@ -261,7 +266,7 @@ object SVG {
                         val elemPlanet = solarPlanet(Point(px, paintY), radius)
                         listOf(
                             elemPlanet,
-                            text(it.name, Point(px, paintY - vertDist * 0.15))
+                            text(it.name, Point(px + textOffset, paintY - textOffset))
                         )
                     } else {
                         val elemPlanet =
@@ -269,17 +274,16 @@ object SVG {
                                 val radius = planetSizeFactor * vertDist * it.radius / allParams.maxPlanetRadius
                                 planet(Point(px, paintY), radius)
                             } else {
-                                val radius = planetSizeFactor * vertDist * 0.2 / allParams.maxPlanetRadius
-                                planetIndifferent(Point(px, paintY), radius)
+                                planetUnknownRadius(Point(px, paintY), vertDist)
                             }
                         listOf(
                             elemPlanet,
-                            text(it.name, Point(px, paintY - vertDist * 0.15))
+                            text(it.name, Point(px + textOffset, paintY - textOffset))
                         )
                     }
                 }
             }
-            return listOf(lineElem, starElem) + planetElems + starTxtElem
+            return (listOf(lineElem, starElem) + planetElems + listOf(systemTxtElem, starTxtElem)).filterNotNull()
         }
 
         val imgElems = solarSystems.withIndex().flatMap { (i, sys) -> solSysElems(sys, i) }
@@ -312,7 +316,7 @@ object SVG {
             planet(Point(40.0, 50.0), 20.0),
             star(Point(46.0, 55.0), 30.0),
             star(Point(45.0, 56.55), 130.0),
-            planetIndifferent(Point(55.0, 44.0), 22.9),
+            planetUnknownRadius(Point(55.0, 44.0), 22.9),
             line(Point(10.0, 10.0), Point(200.0, 500.0)),
             line(Point(10.0, 10.0), Point(200.0, 510.0)),
             line(Point(10.0, 10.0), Point(200.0, 520.0)),
@@ -344,28 +348,28 @@ object SVG {
         println("Wrote file to ${outFile.absolute()}")
     }
 
-    private fun planet(center: Point, r: Double): Element {
-        return circle(center, r, "green", 0.8)
+    private fun planet(center: Point, radius: Double): Element {
+        return circle(center, radius, "green", 0.8)
     }
 
-    private fun planetIndifferent(center: Point, r: Double): Element {
-        return circle(center, r, "green", 0.4)
+    private fun planetUnknownRadius(center: Point, systemVertHeight: Double): Element {
+        return circle(center, systemVertHeight * 0.1, "green", 0.4)
+    }
+
+    private fun solarPlanet(center: Point, radius: Double): Element {
+        return circle(center, radius, "red", 0.9)
     }
 
     private fun planetLine(from: Point, to: Point): Element {
         return line(from, to)
     }
 
-    private fun solarPlanet(center: Point, r: Double): Element {
-        return circle(center, r, "red", 0.9)
+    private fun star(center: Point, radius: Double): Element {
+        return circle(center, radius, "orange", 0.8)
     }
 
-    private fun star(center: Point, r: Double): Element {
-        return circle(center, r, "orange", 0.8)
-    }
-
-    private fun sun(center: Point, r: Double): Element {
-        return circle(center, r, "red", 0.9)
+    private fun sun(center: Point, radius: Double): Element {
+        return circle(center, radius, "red", 0.9)
     }
 
     private fun svgElem(name: String): Element {
@@ -374,11 +378,11 @@ object SVG {
         return elem
     }
 
-    private fun circle(center: Point, r: Double, color: String, opacity: Double): Element {
+    private fun circle(center: Point, radius: Double, color: String, opacity: Double): Element {
         val elem = svgElem("circle")
         elem.setAttribute("cx", center.x.f())
         elem.setAttribute("cy", center.y.f())
-        elem.setAttribute("r", r.f())
+        elem.setAttribute("r", radius.f())
         elem.setAttribute("opacity", opacity.f())
         elem.setAttribute("fill", color)
         return elem
@@ -475,19 +479,6 @@ fun loadSolarSystemInner(): SolarSystem {
 
 private fun tryout() {
     println("Tryout")
-    loadSolarSystem().star.planets.map { it.name }.forEach { println(it) }
-}
-
-private fun printAllNames() {
-    val solSysList = loadCatalog(maxNumber = 51)
-    val starNames = solSysList.map { it.star.name }
-    val planetNames = solSysList.map { it.star.planets }.flatMap { it.map { iti -> iti.name } }
-    printAllObjects(starNames)
-    println("-----------------------------------------------")
-    printAllObjects(planetNames)
-    val all = (starNames + planetNames).joinToString(separator = " ")
-    println()
-    println(all)
 }
 
 private fun loadCatalog(maxNumber: Int = Int.MAX_VALUE): List<SolarSystem> {
@@ -509,11 +500,11 @@ private fun toDouble(elem: Element, name: String): Double? {
 
 private fun toStar(starElem: Element): Star {
     val starMass = toDouble(starElem, "mass")
-    val starName = starElem.children.filter { it.name == "name" }.map { it.text }.first()
+    val starNames = starElem.children.filter { it.name == "name" }.map { it.text }
     return Star(
-        name = starName,
+        names = starNames,
         radius = toDouble(starElem, "radius"),
-        planets = starElem.children.filter { it.name == "planet" }.map { toPlanet(it, starName, starMass) },
+        planets = starElem.children.filter { it.name == "planet" }.map { toPlanet(it, starNames[0], starMass) },
         mass = starMass,
     )
 }
@@ -551,12 +542,6 @@ private fun catFiles(): List<Path> {
     val catDir = pathOf(catPath)
     val catNames = listOf("systems", "systems_kepler")
     return catNames.flatMap { catFiles(catDir, it) }
-}
-
-private fun <T> printAllObjects(obj: List<T>) {
-    obj.withIndex().forEach {
-        println("${it.index} - ${it.value}")
-    }
 }
 
 private fun catFiles(baseDir: Path, catName: String): List<Path> {
