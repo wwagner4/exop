@@ -87,25 +87,27 @@ object SVG {
 
     data class Canvas(val width: Int, val height: Int)
 
-    private val svgNamespace = Namespace.getNamespace("http://www.w3.org/2000/svg")
-
     private data class Point(val x: Number, val y: Number)
+
+    private val svgNamespace = Namespace.getNamespace("http://www.w3.org/2000/svg")
 
     fun i01(action: Action, catalog: Catalog) {
         println("creating image ${action.name} (${action.description}) for catalog: $catalog")
 
-        fun isValidSys(syst: SolarSystem, distMars: Double): Boolean {
+        val sol = loadSolarSystemInner()
+        val distMars = maxPlanetDist(sol) ?: throw IllegalStateException("Could not calculate distance of Mars")
+
+        fun isValidSys(syst: SolarSystem): Boolean {
             val dist = maxPlanetDist(syst)
             return dist != null && dist < 1.2 * distMars && dist > 0.9 * distMars && syst.star.radius != null
         }
 
-        val sol = loadSolarSystemInner()
-        val distMars = maxPlanetDist(sol) ?: throw IllegalStateException("Could not calculate distance of Mars")
+        val catFiltered = loadCatalog(catalog).filter { isValidSys(it) }
+        val solarSystems = (catFiltered + listOf(loadSolarSystemInner())).sortedBy { maxPlanetDist(it) }
 
-        val solarSystems = loadCatalog(catalog).filter { isValidSys(it, distMars) } + listOf(loadSolarSystemInner())
         val canvas = Canvas(1000, 600)
-        val borderX = 20.0
-        val borderY = 50.0
+        val borderX = 40.0
+        val borderY = 30.0
 
         val maxSystemDist = solarSystems.flatMap { it.star.planets }.mapNotNull { it.dist }.maxOrNull()
             ?: throw IllegalStateException("Could not calculate max system distance")
@@ -163,8 +165,9 @@ object SVG {
             return listOf(lineElem, starElem) + planetElems + starTxtElem
         }
 
-        val elems = solarSystems.sortedBy { maxPlanetDist(it) }.withIndex().flatMap { (i, sys) -> solSysElems(sys, i) }
-        writeSvg(outFile, canvas) { elems }
+        val bgElem = rect(Point(0, 0), canvas.width.toDouble(), canvas.height.toDouble(), color = "white")
+        val imgElems = solarSystems.withIndex().flatMap { (i, sys) -> solSysElems(sys, i) }
+        writeSvg(outFile, canvas) { listOf(bgElem) + imgElems }
     }
 
     fun i02(action: Action, catalogId: Catalog) {
