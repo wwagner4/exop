@@ -1,12 +1,12 @@
 == current milestone
 
 img_improve
-    - write
     - scale text size
     - add title
     - add a legend
     - add explanation text, legend
 work
+    - write text after images
 done
     - write star name if it is different to system name
 

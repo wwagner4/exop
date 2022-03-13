@@ -82,9 +82,9 @@ private fun argDescription(): String {
 
 object SVG {
 
-    private data class Canvas(val width: Int, val height: Int)
+    data class Canvas(val width: Int, val height: Int)
 
-    private data class Point(val x: Number, val y: Number)
+    data class Point(val x: Number, val y: Number)
 
     private data class SystemParameters(
         val maxSystemDist: Double,
@@ -128,17 +128,19 @@ object SVG {
             val paintSystemY = index * paintVertDist + borderY
 
             val paintSystemDist = (canvas.width - 2 * borderX) * systemSize / allSystemParameters.maxSystemDist
-            val lineElem = planetLine(Point(borderX, paintSystemY), Point(borderX + paintSystemDist, paintSystemY))
+            val lineElem = ExopElems.planetLine(Point(borderX, paintSystemY), Point(borderX + paintSystemDist, paintSystemY))
 
             val paintRadiusStar =
                 starSizeFactor * paintVertDist * (solarSystem.star.radius
                     ?: sol.star.radius!!) / allSystemParameters.maxStarRadius
             val starElem =
-                if (isSol) sun(Point(borderX, paintSystemY), paintRadiusStar)
-                else star(Point(borderX, paintSystemY), paintRadiusStar)
+                if (isSol) ExopElems.sun(Point(borderX, paintSystemY), paintRadiusStar)
+                else ExopElems.star(Point(borderX, paintSystemY), paintRadiusStar)
 
-            val starTxtElem = text(
-                solarSystem.star.name, Point(borderX, paintSystemY - paintVertDist * 0.15),
+            val starTxtElem = ExopElems.nameText(
+                Point(borderX, paintSystemY - paintVertDist * 0.15),
+                solarSystem.star.name,
+                paintVertDist,
                 textAnchorLeft = true
             )
 
@@ -148,24 +150,24 @@ object SVG {
                     val paintDistPlanet = (canvas.width - 2 * borderX) * it.dist / allSystemParameters.maxSystemDist
                     val px = borderX + paintDistPlanet
                     if (isSol) {
-                        val elemPlanet = solarPlanet(
+                        val elemPlanet = ExopElems.solarPlanet(
                             Point(px, paintSystemY),
                             planetSizeFactor * paintVertDist * it.radius!! / allSystemParameters.maxPlanetRadius
                         )
                         listOf(
                             elemPlanet,
-                            text(it.name, Point(px, paintSystemY - paintVertDist * 0.15))
+                            ExopElems.nameText(Point(px, paintSystemY), it.name, paintVertDist)
                         )
                     } else {
                         val elemPlanet =
-                            if (it.radius != null) planet(
+                            if (it.radius != null) ExopElems.planet(
                                 Point(px, paintSystemY),
                                 planetSizeFactor * paintVertDist * it.radius / allSystemParameters.maxPlanetRadius
                             )
-                            else planetUnknownRadius(Point(px, paintSystemY), paintVertDist)
+                            else ExopElems.planetUnknownRadius(Point(px, paintSystemY), paintVertDist)
                         listOf(
                             elemPlanet,
-                            text(it.name, Point(px, paintSystemY - paintVertDist * 0.15))
+                            ExopElems.nameText(Point(px, paintSystemY), it.name, paintVertDist)
                         )
                     }
                 }
@@ -174,9 +176,9 @@ object SVG {
             return listOf(lineElem, starElem) + planetElems + starTxtElem
         }
 
-        val bgElem = rect(Point(0, 0), canvas.width.toDouble(), canvas.height.toDouble(), color = "white")
+        val bgElem = Basic.rect(Point(0, 0), canvas.width.toDouble(), canvas.height.toDouble(), color = "white")
         val imgElems = solarSystems.withIndex().flatMap { (i, sys) -> solSysElems(sys, i) }
-        writeSvg(outFile, canvas) { listOf(bgElem) + imgElems }
+        Basic.writeSvg(outFile, canvas) { listOf(bgElem) + imgElems }
     }
 
     fun i02(name: String, description: String) {
@@ -223,11 +225,10 @@ object SVG {
         val allParams = allSystemParameters(solarSystems)
 
         val vertDist = (canvas.height - 2 * borderY) / (solarSystems.size - 1)
-        val textOffset = vertDist * 0.1
         val outDir = getCreateOutDir()
         val outFile = outDir.resolve("${name}.svg")
 
-        val bgElem = rect(Point(0, 0), canvas.width.toDouble(), canvas.height.toDouble(), color = "white")
+        val bgElem = Basic.rect(Point(0, 0), canvas.width.toDouble(), canvas.height.toDouble(), color = "white")
 
 
         fun solSysElems(solarSystem: SolarSystem, index: Int): List<Element> {
@@ -240,45 +241,46 @@ object SVG {
             val paintSystemDist = (canvas.width - 2 * borderX) * systemDist / fixedSystemDist
             val paintMaxSystemDist = (canvas.width - borderX)
             val lineElem =
-                planetLine(Point(borderX, paintY), Point(min(borderX + paintSystemDist, paintMaxSystemDist), paintY))
+                ExopElems.planetLine(Point(borderX, paintY), Point(min(borderX + paintSystemDist, paintMaxSystemDist), paintY))
 
             val paintRadiusStar = starSizeFactor * vertDist * (solarSystem.star.radius ?: 1.0) / allParams.maxStarRadius
             val starElem =
-                if (isSol) sun(Point(borderX, paintY), paintRadiusStar)
-                else star(Point(borderX, paintY), paintRadiusStar)
+                if (isSol) ExopElems.sun(Point(borderX, paintY), paintRadiusStar)
+                else ExopElems.star(Point(borderX, paintY), paintRadiusStar)
 
-            val systemTxtElem = text(
-                solarSystem.name, Point(borderX - textOffset, paintY - textOffset),
+            val systemTxtElem = ExopElems.nameText(
+                Point(borderX, paintY), solarSystem.name,
+                vertDist,
                 textAnchorLeft = true
             )
             val starTxtElem =
                 if (solarSystem.name == solarSystem.star.name) null
-                else text(solarSystem.star.name, Point(borderX + textOffset, paintY - textOffset))
+                else ExopElems.nameText(Point(borderX, paintY), solarSystem.star.name, vertDist)
 
             val planetElems = solarSystem.star.planets.flatMap {
                 if (it.dist == null) listOf()
                 else {
                     val paintDistPlanet = (canvas.width - 2 * borderX) * it.dist / fixedSystemDist
-                    val px = borderX + paintDistPlanet
-                    if (px > paintMaxSystemDist) listOf()
+                    val paintPlanetX = borderX + paintDistPlanet
+                    if (paintPlanetX > paintMaxSystemDist) listOf()
                     else if (isSol) {
                         val radius = planetSizeFactor * vertDist * it.radius!! / allParams.maxPlanetRadius
-                        val elemPlanet = solarPlanet(Point(px, paintY), radius)
+                        val elemPlanet = ExopElems.solarPlanet(Point(paintPlanetX, paintY), radius)
                         listOf(
                             elemPlanet,
-                            text(it.name, Point(px + textOffset, paintY - textOffset))
+                            ExopElems.nameText(Point(paintPlanetX, paintY), it.name, vertDist)
                         )
                     } else {
                         val elemPlanet =
                             if (it.radius != null) {
                                 val radius = planetSizeFactor * vertDist * it.radius / allParams.maxPlanetRadius
-                                planet(Point(px, paintY), radius)
+                                ExopElems.planet(Point(paintPlanetX, paintY), radius)
                             } else {
-                                planetUnknownRadius(Point(px, paintY), vertDist)
+                                ExopElems.planetUnknownRadius(Point(paintPlanetX, paintY), vertDist)
                             }
                         listOf(
                             elemPlanet,
-                            text(it.name, Point(px + textOffset, paintY - textOffset))
+                            ExopElems.nameText(Point(paintPlanetX, paintY), it.name, vertDist)
                         )
                     }
                 }
@@ -287,7 +289,36 @@ object SVG {
         }
 
         val imgElems = solarSystems.withIndex().flatMap { (i, sys) -> solSysElems(sys, i) }
-        writeSvg(outFile, canvas) { listOf(bgElem) + imgElems }
+        Basic.writeSvg(outFile, canvas) { listOf(bgElem) + imgElems }
+    }
+
+    fun createTest() {
+
+        fun testElems(): List<Element> = listOf(
+            ExopElems.planet(Point(40.0, 50.0), 20.0),
+            ExopElems.star(Point(46.0, 55.0), 30.0),
+            ExopElems.star(Point(45.0, 56.55), 130.0),
+            ExopElems.planetUnknownRadius(Point(55.0, 44.0), 22.9),
+            Basic.line(Point(10.0, 10.0), Point(200.0, 500.0), 0.2, "green"),
+            Basic.line(Point(10.0, 10.0), Point(200.0, 510.0), 0.1, "blue"),
+            Basic.line(Point(10.0, 10.0), Point(200.0, 520.0), 0.5, "orange"),
+            ExopElems.nameText(Point(10.0, 200.0), "hallo wolfi", 20.0),
+            ExopElems.nameText(Point(11.0, 400.0), "I like DJ", 20.0),
+        )
+
+        println("create test svg")
+        val outDir = Path.of("target", "svg")
+        val outFile = outDir.resolve("t2.svg")
+
+        if (Files.notExists(outDir)) Files.createDirectories(outDir)
+
+        Basic.writeSvg(outFile, Canvas(600, 600)) { testElems() }
+    }
+
+    private fun getCreateOutDir(): Path {
+        val outDir = Path.of("target", "images")
+        if (Files.notExists(outDir)) Files.createDirectories(outDir)
+        return outDir
     }
 
     private fun allSystemParameters(solarSystems: List<SolarSystem>): SystemParameters {
@@ -300,151 +331,145 @@ object SVG {
         return SystemParameters(maxSystemDist, maxStarRadius, maxPlanetRadius)
     }
 
-    private fun getCreateOutDir(): Path {
-        val outDir = Path.of("target", "images")
-        if (Files.notExists(outDir)) Files.createDirectories(outDir)
-        return outDir
-    }
-
     private fun maxPlanetDist(solarSystem: SolarSystem): Double? {
         return solarSystem.star.planets.mapNotNull { it.dist }.maxOrNull()
     }
 
-    fun createTest() {
 
-        fun testElems(): List<Element> = listOf(
-            planet(Point(40.0, 50.0), 20.0),
-            star(Point(46.0, 55.0), 30.0),
-            star(Point(45.0, 56.55), 130.0),
-            planetUnknownRadius(Point(55.0, 44.0), 22.9),
-            line(Point(10.0, 10.0), Point(200.0, 500.0)),
-            line(Point(10.0, 10.0), Point(200.0, 510.0)),
-            line(Point(10.0, 10.0), Point(200.0, 520.0)),
-            text("hallo wolfi", Point(10.0, 200.0)),
-            text("I like DJ", Point(11.0, 400.0)),
-        )
+    object ExopElems {
+        fun planet(center: Point, radius: Double): Element {
+            return Basic.circle(center, radius, "green", 0.8)
+        }
 
-        println("create test svg")
-        val outDir = Path.of("target", "svg")
-        val outFile = outDir.resolve("t2.svg")
+        fun planetUnknownRadius(center: Point, systemVertHeight: Double): Element {
+            return Basic.circle(center, systemVertHeight * 0.1, "green", 0.4)
+        }
 
-        if (Files.notExists(outDir)) Files.createDirectories(outDir)
+        fun solarPlanet(center: Point, radius: Double): Element {
+            return Basic.circle(center, radius, "red", 0.9)
+        }
 
-        writeSvg(outFile, Canvas(600, 600)) { testElems() }
+        fun star(center: Point, radius: Double): Element {
+            return Basic.circle(center, radius, "orange", 0.8)
+        }
+
+        fun sun(center: Point, radius: Double): Element {
+            return Basic.circle(center, radius, "red", 0.9)
+        }
+
+        fun planetLine(from: Point, to: Point): Element {
+            return Basic.line(from, to, 0.1, "green")
+        }
+
+        fun nameText(
+            origin: Point,
+            text: String,
+            systemVertHeight: Double,
+            textAnchorLeft: Boolean = false
+        ): Element {
+            val offset = systemVertHeight * 0.1
+            val origin1 =
+                if (textAnchorLeft) Point(origin.x.toDouble() - offset, origin.y.toDouble() - offset)
+                else Point(origin.x.toDouble() + offset, origin.y.toDouble() - offset)
+            return Basic.text(text, origin1, "blue", 0.8, 0.2, textAnchorLeft = textAnchorLeft)
+        }
     }
 
-    private fun writeSvg(outFile: Path, canvas: Canvas, createElems: () -> List<Element>) {
-        val root = svgElem("svg")
-        root.setAttribute("viewBox", "0 0 ${canvas.width} ${canvas.height}")
+    object Basic {
 
-        createElems().forEach { root.addContent(it) }
+        fun writeSvg(outFile: Path, canvas: Canvas, createElems: () -> List<Element>) {
+            fun z(element: Element): Int {
+                if (element.name == "text") return 10
+                return 0
+            }
 
-        val document = Document()
-        document.setContent(root)
-        val writer = FileWriter(outFile.toFile())
-        val outputter = XMLOutputter()
-        outputter.format = Format.getPrettyFormat()
-        outputter.output(document, writer)
-        println("Wrote file to ${outFile.absolute()}")
-    }
+            val root = svgElem("svg")
+            root.setAttribute("viewBox", "0 0 ${canvas.width} ${canvas.height}")
 
-    private fun planet(center: Point, radius: Double): Element {
-        return circle(center, radius, "green", 0.8)
-    }
+            createElems().sortedBy { z(it) }.forEach { root.addContent(it) }
 
-    private fun planetUnknownRadius(center: Point, systemVertHeight: Double): Element {
-        return circle(center, systemVertHeight * 0.1, "green", 0.4)
-    }
+            val document = Document()
+            document.setContent(root)
+            val writer = FileWriter(outFile.toFile())
+            val outputter = XMLOutputter()
+            outputter.format = Format.getPrettyFormat()
+            outputter.output(document, writer)
+            println("Wrote file to ${outFile.absolute()}")
+        }
 
-    private fun solarPlanet(center: Point, radius: Double): Element {
-        return circle(center, radius, "red", 0.9)
-    }
+        fun circle(center: Point, radius: Double, color: String, opacity: Double): Element {
+            val elem = svgElem("circle")
+            elem.setAttribute("cx", center.x.f())
+            elem.setAttribute("cy", center.y.f())
+            elem.setAttribute("r", radius.f())
+            elem.setAttribute("opacity", opacity.f())
+            elem.setAttribute("fill", color)
+            return elem
+        }
 
-    private fun planetLine(from: Point, to: Point): Element {
-        return line(from, to)
-    }
+        fun line(
+            from: Point,
+            to: Point,
+            strokeWidth: Double,
+            color: String,
+            opacity: Double = 0.8
+        ): Element {
+            val elem = svgElem("line")
+            elem.setAttribute("x1", from.x.f())
+            elem.setAttribute("y1", from.y.f())
+            elem.setAttribute("x2", to.x.f())
+            elem.setAttribute("y2", to.y.f())
+            elem.setAttribute("opacity", opacity.f())
+            elem.setAttribute("style", "stroke:$color;stroke-width:${strokeWidth.f()}")
+            return elem
+        }
 
-    private fun star(center: Point, radius: Double): Element {
-        return circle(center, radius, "orange", 0.8)
-    }
+        fun rect(
+            origin: Point,
+            width: Double,
+            height: Double,
+            color: String,
+            opacity: Double = 1.0,
+        ): Element {
+            val elem = svgElem("rect")
+            elem.setAttribute("x", origin.x.f())
+            elem.setAttribute("y", origin.y.f())
+            elem.setAttribute("width", width.f())
+            elem.setAttribute("height", height.f())
+            elem.setAttribute("opacity", opacity.f())
+            elem.setAttribute("style", "fill:$color;")
+            return elem
+        }
 
-    private fun sun(center: Point, radius: Double): Element {
-        return circle(center, radius, "red", 0.9)
-    }
+        fun text(
+            text: String,
+            origin: Point,
+            color: String,
+            opacity: Double,
+            size: Double,
+            textAnchorLeft: Boolean = false
+        ): Element {
+            val elem = svgElem("text")
+            elem.setAttribute("x", origin.x.f())
+            elem.setAttribute("y", origin.y.f())
+            elem.setAttribute("fill", color)
+            elem.setAttribute("opacity", opacity.f())
+            elem.setAttribute("font-family", "sans-serif")
+            elem.setAttribute("font-size", "${size.f()}em")
+            if (textAnchorLeft) elem.setAttribute("text-anchor", "end")
+            elem.text = text
+            return elem
+        }
 
-    private fun svgElem(name: String): Element {
-        val elem = Element(name)
-        elem.namespace = svgNamespace
-        return elem
-    }
+        private fun svgElem(name: String): Element {
+            val elem = Element(name)
+            elem.namespace = svgNamespace
+            return elem
+        }
 
-    private fun circle(center: Point, radius: Double, color: String, opacity: Double): Element {
-        val elem = svgElem("circle")
-        elem.setAttribute("cx", center.x.f())
-        elem.setAttribute("cy", center.y.f())
-        elem.setAttribute("r", radius.f())
-        elem.setAttribute("opacity", opacity.f())
-        elem.setAttribute("fill", color)
-        return elem
-    }
-
-    private fun line(
-        from: Point,
-        to: Point,
-        strokeWidth: Double = 0.1,
-        color: String = "green",
-        opacity: Double = 0.8
-    ): Element {
-        val elem = svgElem("line")
-        elem.setAttribute("x1", from.x.f())
-        elem.setAttribute("y1", from.y.f())
-        elem.setAttribute("x2", to.x.f())
-        elem.setAttribute("y2", to.y.f())
-        elem.setAttribute("opacity", opacity.f())
-        elem.setAttribute("style", "stroke:$color;stroke-width:${strokeWidth.f()}")
-        return elem
-    }
-
-    private fun rect(
-        origin: Point,
-        width: Double,
-        height: Double,
-        color: String,
-        opacity: Double = 1.0,
-    ): Element {
-        val elem = svgElem("rect")
-        elem.setAttribute("x", origin.x.f())
-        elem.setAttribute("y", origin.y.f())
-        elem.setAttribute("width", width.f())
-        elem.setAttribute("height", height.f())
-        elem.setAttribute("opacity", opacity.f())
-        elem.setAttribute("style", "fill:$color;")
-        return elem
-    }
-
-
-    private fun text(
-        text: String,
-        origin: Point,
-        color: String = "blue",
-        opacity: Double = 0.8,
-        size: Double = 0.2,
-        textAnchorLeft: Boolean = false
-    ): Element {
-        val elem = svgElem("text")
-        elem.setAttribute("x", origin.x.f())
-        elem.setAttribute("y", origin.y.f())
-        elem.setAttribute("fill", color)
-        elem.setAttribute("opacity", opacity.f())
-        elem.setAttribute("font-family", "sans-serif")
-        elem.setAttribute("font-size", "${size.f()}em")
-        if (textAnchorLeft) elem.setAttribute("text-anchor", "end")
-        elem.text = text
-        return elem
-    }
-
-    private fun Number.f(): String {
-        return "%.3f".format(this.toDouble())
+        private fun Number.f(): String {
+            return "%.3f".format(this.toDouble())
+        }
     }
 }
 
