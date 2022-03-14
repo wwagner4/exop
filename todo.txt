@@ -1,21 +1,25 @@
 == current milestone
 
 img_improve
-    - scale text size
+    - Fix Gliese 163 naming
     - add title
     - add a legend
     - add explanation text, legend
 work
-    - write text after images
 done
+    - write text after images
     - write star name if it is different to system name
+    - scale text size
 
 ---------------------------------------------------------------------------
 == open milestones
 
 tech02
-    - make some svg rendering
     - make a dockerfile for easy build and deployment
+    - make some svg rendering
+
+homepage
+    - ???
 
 ----------------------------------------------------------------------------
 ==done milestones
