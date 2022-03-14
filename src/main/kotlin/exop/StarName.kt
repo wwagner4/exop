@@ -19,6 +19,7 @@ object StarName {
             "GSC",
             "Gaia",
             "Gl",
+            "GJ",
             "HAT",
             "HD",
             "HIP",

@@ -1,12 +1,13 @@
 == current milestone
 
 img_improve
-    - Fix Gliese 163 naming
-    - add title
     - add a legend
     - add explanation text, legend
+    - font configurable
 work
 done
+    - add title
+    - Fix Gliese 163 naming
     - write text after images
     - write star name if it is different to system name
     - scale text size
