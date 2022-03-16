@@ -1,11 +1,12 @@
 == current milestone
 
 img_improve
-    - add a legend
     - add explanation text, legend
     - font configurable
+    - common parameters for text size, opacity, font and color
 work
 done
+    - add a legend
     - add title
     - Fix Gliese 163 naming
     - write text after images
@@ -18,6 +19,12 @@ done
 tech02
     - make a dockerfile for easy build and deployment
     - make some svg rendering
+    - refactor planet - and star names into one object names.
+    - Remove name method from data class
+    - Make image elems borders general
+
+various
+    - include binary systems
 
 homepage
     - ???
