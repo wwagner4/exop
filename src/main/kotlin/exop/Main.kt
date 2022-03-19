@@ -48,9 +48,7 @@ data class SolarSystem(
 
 @Suppress("EnumEntryName")
 enum class Action(val description: String) {
-    i01("Exoplanets compared to the inner Solar System"),
-    i02("Earthlike Planets"),
-    all("All images"),
+    i01("Earthlike Distance"),
     svgt("Test svg creation"),
     tryout(
         "Helpful during development"
@@ -71,12 +69,6 @@ fun main(args: Array<String>) {
         parser.parse(args)
         when (action) {
             Action.i01 -> SVG.i01(action.name, action.description)
-            Action.i02 -> SVG.i02(action.name, action.description)
-            Action.all -> {
-                SVG.i01(Action.i01.name, Action.i01.description); SVG.i02(
-                    Action.i02.name, Action.i02.description
-                )
-            }
             Action.svgt -> SVG.createTest()
             Action.tryout -> tryout()
         }
@@ -107,127 +99,6 @@ object SVG {
     )
 
     fun i01(id: String, title: String) {
-        println("creating image $id (${title})")
-
-        val sol = loadSolarSystemInner()
-        val distMars = maxPlanetDist(sol) ?: throw IllegalStateException("Could not calculate distance of Mars")
-
-        fun isValidSys(syst: SolarSystem): Boolean {
-            val dist = maxPlanetDist(syst)
-            return dist != null && dist < 1.2 * distMars && dist > 0.9 * distMars && syst.star.radius != null
-        }
-
-        val catFiltered = loadCatalog().filter { isValidSys(it) }
-        val solarSystems = (catFiltered + listOf(loadSolarSystemInner())).sortedBy {
-            maxPlanetDist(it)
-        }
-        val allSystemParameters = allSystemParameters(solarSystems)
-
-        val canvas = Canvas(1000, 600)
-        val borderX = 40.0
-        val borderTop = 70.0
-        val borderBottom = 20.0
-        val planetSizeFactor = 1.7
-        val starSizeFactor = 1.7
-        val txtSize = 0.025
-        val txtOffset = 0.1
-
-        val outDir = getCreateOutDir()
-        val outFile = outDir.resolve("${id}.svg")
-
-        val paintVertDist = (canvas.height - (borderTop + borderBottom)) / (solarSystems.size - 1)
-
-        fun solSysElems(solarSystem: SolarSystem, index: Int): List<Element> {
-            val isSol = solarSystem.name == "Sun"
-            val systemSize = maxPlanetDist(solarSystem)
-                ?: throw IllegalStateException("solar system with no planet ${solarSystem.name}")
-
-            val paintSystemY = index * paintVertDist + borderTop
-
-            val paintSystemDist = (canvas.width - 2 * borderX) * systemSize / allSystemParameters.maxSystemDist
-            val lineElem = ExopElems.planetLine(
-                Point(borderX, paintSystemY), Point(borderX + paintSystemDist, paintSystemY)
-            )
-
-            val paintRadiusStar = starSizeFactor * paintVertDist * (solarSystem.star.radius
-                ?: sol.star.radius!!) / allSystemParameters.maxStarRadius
-            val starElem = if (isSol) ExopElems.sun(
-                Point(borderX, paintSystemY), paintRadiusStar
-            )
-            else ExopElems.star(
-                Point(borderX, paintSystemY), paintRadiusStar
-            )
-
-            val systemTxtElem = ExopElems.nameSystem(
-                Point(borderX, paintSystemY), solarSystem.name,
-                paintVertDist * txtSize,
-                paintVertDist * txtOffset,
-            )
-            val starTxtElem = if (solarSystem.name == solarSystem.star.name) null
-            else ExopElems.nameGeneral(
-                Point(borderX, paintSystemY), solarSystem.star.name, paintVertDist * txtSize, paintVertDist * txtOffset
-            )
-
-            val planetElems = solarSystem.star.planets.flatMap {
-                if (it.dist == null) listOf()
-                else {
-                    val paintDistPlanet = (canvas.width - 2 * borderX) * it.dist / allSystemParameters.maxSystemDist
-                    val px = borderX + paintDistPlanet
-                    if (isSol) {
-                        val elemPlanet = ExopElems.solarPlanet(
-                            Point(px, paintSystemY),
-                            planetSizeFactor * paintVertDist * it.radius!! / allSystemParameters.maxPlanetRadius
-                        )
-                        listOf(
-                            elemPlanet, ExopElems.nameGeneral(
-                                Point(px, paintSystemY), it.name, paintVertDist * txtSize, paintVertDist * txtOffset
-                            )
-                        )
-                    } else {
-                        val elemPlanet = if (it.radius != null) ExopElems.planet(
-                            Point(px, paintSystemY),
-                            planetSizeFactor * paintVertDist * it.radius / allSystemParameters.maxPlanetRadius
-                        )
-                        else ExopElems.planetUnknownRadius(
-                            Point(
-                                px, paintSystemY
-                            ), 3.0 / paintVertDist
-                        )
-                        listOf(
-                            elemPlanet, ExopElems.nameGeneral(
-                                Point(px, paintSystemY), it.name, paintVertDist * txtSize, paintVertDist * txtOffset
-                            )
-                        )
-                    }
-                }
-            }
-
-            return (listOf(
-                lineElem, starElem
-            ) + planetElems + systemTxtElem + starTxtElem).filterNotNull()
-        }
-
-        val bgElem = Basic.rect(
-            Point(0, 0), canvas.width.toDouble(), canvas.height.toDouble(), color = "white"
-        )
-
-        fun titleElem(): Element {
-            val x = borderX
-            val y = borderTop - 20
-            return Basic.text(
-                title, Point(x, y), color = "blue", size = 1.7, opacity = 1.0, textAnchorLeft = false
-            )
-        }
-
-        val titleElem = titleElem()
-        val imgElems = solarSystems.withIndex().flatMap { (i, sys) -> solSysElems(sys, i) }
-        val legendElems =
-            ExopElems.legendElems(borderTop - 20, canvas.width - borderX, zoom = 0.65, textAnchorLeft = true)
-        Basic.writeSvg(outFile, canvas) { listOf(bgElem) + legendElems + imgElems + titleElem }
-    }
-
-
-    fun i02(id: String, title: String) {
         val numberOfSystems = 60
 
         val canvas = Canvas(1000, 1500)
@@ -244,14 +115,6 @@ object SVG {
             val minEarthDist: Double,
             val solarSystem: SolarSystem,
         )
-
-        fun titleElem(): Element {
-            val x = canvas.width - borderX
-            val y = 100
-            return Basic.text(
-                title, Point(x, y), color = "blue", size = 4.0, opacity = 1.0, textAnchorLeft = true
-            )
-        }
 
         val sol = loadSolarSystemInner()
 
@@ -365,12 +228,28 @@ object SVG {
             )).filterNotNull()
         }
 
+        fun titleElem(): Element {
+            val x = canvas.width - borderX
+            val y = 100
+            return Basic.text(
+                title, Point(x, y), color = "blue", size = 4.0, opacity = 1.0, textAnchorLeft = true
+            )
+        }
+
+
         val imgElems = solarSystems.withIndex().flatMap { (i, sys) -> solSysElems(sys, i) }
         val titleElem = titleElem()
-        val legendElem = ExopElems.legendElems(150, canvas.width - borderX, zoom = 0.8)
+        val explainElems = ExopElems.multilineText(
+            listOf(
+                "Planetary systems containing one planet that has",
+                "about the same distance to its star than the earth",
+            ), canvas.width - borderX, 200, zoom = 0.8, textAnchorLeft = true
+        )
+        val legendElems = ExopElems.legendElems(canvas.width - borderX, 400, zoom = 0.8)
+
         Basic.writeSvg(
             outFile, canvas
-        ) { listOf(bgElem) + imgElems + titleElem + legendElem }
+        ) { listOf(bgElem) + imgElems + titleElem + legendElems + explainElems }
     }
 
     fun createTest() {
@@ -467,8 +346,8 @@ object SVG {
         }
 
         fun legendElems(
-            yBase: Number,
             xBase: Number,
+            yBase: Number,
             zoom: Double = 1.0,
             textAnchorLeft: Boolean = true
         ): List<Element> {
@@ -524,6 +403,35 @@ object SVG {
             )
             return if (textAnchorLeft) texts.withIndex().flatMap { (i, t) -> lineLeftAligned(t, i) }
             else texts.withIndex().flatMap { (i, t) -> lineRightAligned(t, i) }
+        }
+
+        fun multilineText(
+            lines: List<String>,
+            xBase: Number,
+            yBase: Number,
+            zoom: Double = 1.0,
+            textAnchorLeft: Boolean = true
+        ): List<Element> {
+
+            val vDist = 30 * zoom
+            val txtSize = 1.0 * zoom
+
+            fun lineLeftAligned(line: String, i: Int): List<Element> {
+                val y = yBase.toDouble() + i * vDist
+                val txtOrigin = Point(xBase, y)
+                return listOf(
+                    Basic.text(
+                        line,
+                        txtOrigin,
+                        color = "blue",
+                        size = txtSize,
+                        opacity = 1.0,
+                        textAnchorLeft = textAnchorLeft
+                    ),
+                )
+            }
+
+            return lines.withIndex().flatMap { (i, t) -> lineLeftAligned(t, i) }
         }
 
 

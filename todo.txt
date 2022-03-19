@@ -1,11 +1,11 @@
 == current milestone
 
 img_improve
-    - add explanation text, legend
     - font configurable
     - common parameters for text size, opacity, font and color
 work
 done
+    - add explanation text
     - add a legend
     - add title
     - Fix Gliese 163 naming
