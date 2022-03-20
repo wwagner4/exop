@@ -11,6 +11,8 @@ import org.jdom2.output.XMLOutputter
 import java.io.FileWriter
 import java.nio.file.Files
 import java.nio.file.Path
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import kotlin.io.path.absolute
 import kotlin.io.path.name
 import kotlin.math.*
@@ -110,7 +112,7 @@ object SVG {
         val canvas = Canvas(width, (width * 1.414213562).toInt())
         val borderLeft = 80.0
         val borderRight = 40.0
-        val borderTop = 150.0
+        val borderTop = 175.0
         val borderBottom = 50.0
         val planetSizeFactor = 1.7
         val starSizeFactor = 1.7
@@ -252,8 +254,9 @@ object SVG {
         fun titleElem(): Element {
             val x = canvas.width - borderRight
             val y = 100
+            val theTitle = "Known Planetary Systems"
             return Basic.text(
-                title,
+                theTitle,
                 Point(x, y),
                 size = 4.0,
                 textStyle = textStyle,
@@ -261,9 +264,24 @@ object SVG {
             )
         }
 
+        fun subTitleElem(): Element {
+            val x = canvas.width - borderRight
+            val y = 150
+            val dat = LocalDate.now()
+            val fmt = DateTimeFormatter.ofPattern("MMM YYYY")
+            val datStr = fmt.format(dat)
+            return Basic.text(
+                "$title as of $datStr",
+                Point(x, y),
+                size = 2.0,
+                textStyle = textStyle,
+                textAnchorLeft = true
+            )
+        }
 
         val imgElems = solarSystems.withIndex().flatMap { (i, sys) -> solSysElems(sys, i) }
         val titleElem = titleElem()
+        val subTitleElem = subTitleElem()
         val explainElems = ExopElems.multilineText(
             listOf(
                 "Planetary systems containing one planet that has",
@@ -274,7 +292,7 @@ object SVG {
 
         Basic.writeSvg(
             outFile, canvas, textStyle.fontFamily,
-        ) { listOf(bgElem) + imgElems + titleElem + legendElems + explainElems }
+        ) { listOf(bgElem) + imgElems + titleElem + subTitleElem + legendElems + explainElems }
     }
 
     fun createTest() {

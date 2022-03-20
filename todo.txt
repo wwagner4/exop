@@ -1,19 +1,5 @@
 == current milestone
 
-img_improve
-    - add a subtitle
-work
-    - common parameters for text size, opacity, font and color
-done
-    - font configurable
-    - add explanation text
-    - add a legend
-    - add title
-    - Fix Gliese 163 naming
-    - write text after images
-    - write star name if it is different to system name
-    - scale text size
-
 ---------------------------------------------------------------------------
 == open milestones
 
@@ -32,6 +18,18 @@ homepage
 
 ----------------------------------------------------------------------------
 ==done milestones
+
+img_improve
+    - add a subtitle
+    - common parameters for text size, opacity, font and color
+    - font configurable
+    - add explanation text
+    - add a legend
+    - add title
+    - Fix Gliese 163 naming
+    - write text after images
+    - write star name if it is different to system name
+    - scale text size
 
 tech01
     - Move Svg to separate file
