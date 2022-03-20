@@ -96,6 +96,13 @@ object SVG {
         val maxPlanetRadius: Double,
     )
 
+    data class TextStyle(
+        val color: String,
+        val opacity: Double,
+        val fontFamily: Font.Family,
+    )
+
+
     fun i01(id: String, title: String) {
         val numberOfSystems = 60
 
@@ -110,7 +117,12 @@ object SVG {
         val txtSize = 0.025
         val txtOffset = 0.1
         val maxSystemDist1 = 1.7
-        val fontFamily = Font.Family.turretRoad
+
+        val textStyle = TextStyle(
+            color = "blue",
+            opacity = 0.8,
+            fontFamily = Font.Family.turretRoad
+        )
 
         data class Syst(
             val minEarthDist: Double,
@@ -176,11 +188,11 @@ object SVG {
                 Point(borderLeft, paintY), solarSystem.name,
                 vertDist * txtSize,
                 vertDist * txtOffset,
-                fontFamily,
+                textStyle,
             )
             val starTxtElem = if (solarSystem.name == solarSystem.star.name) null
             else ExopElems.nameGeneral(
-                Point(borderLeft, paintY), solarSystem.star.name, vertDist * txtSize, vertDist * txtOffset, fontFamily
+                Point(borderLeft, paintY), solarSystem.star.name, vertDist * txtSize, vertDist * txtOffset, textStyle
             )
 
             val planetElems = solarSystem.star.planets.flatMap {
@@ -200,7 +212,7 @@ object SVG {
                                 it.name,
                                 vertDist * txtSize,
                                 vertDist * txtOffset,
-                                fontFamily
+                                textStyle
                             )
                         )
                     } else {
@@ -222,7 +234,7 @@ object SVG {
                                 it.name,
                                 vertDist * txtSize,
                                 vertDist * txtOffset,
-                                fontFamily
+                                textStyle
                             )
                         )
                     }
@@ -232,6 +244,7 @@ object SVG {
                 systemTxtElem, starTxtElem
             )).filterNotNull()
         }
+
         val bgElem = Basic.rect(
             Point(0, 0), canvas.width.toDouble(), canvas.height.toDouble(), color = "white"
         )
@@ -242,10 +255,8 @@ object SVG {
             return Basic.text(
                 title,
                 Point(x, y),
-                color = "blue",
                 size = 4.0,
-                opacity = 1.0,
-                fontFamily = fontFamily,
+                textStyle = textStyle,
                 textAnchorLeft = true
             )
         }
@@ -257,16 +268,18 @@ object SVG {
             listOf(
                 "Planetary systems containing one planet that has",
                 "about the same distance to its star than the earth",
-            ), canvas.width - borderRight, 200, fontFamily = fontFamily, zoom = 0.8, textAnchorLeft = true
+            ), canvas.width - borderRight, 200, textStyle = textStyle, zoom = 0.8, textAnchorLeft = true
         )
-        val legendElems = ExopElems.legendElems(canvas.width - borderRight, 400, fontFamily, zoom = 0.8)
+        val legendElems = ExopElems.legendElems(canvas.width - borderRight, 400, textStyle = textStyle, zoom = 0.8)
 
         Basic.writeSvg(
-            outFile, canvas, fontFamily,
+            outFile, canvas, textStyle.fontFamily,
         ) { listOf(bgElem) + imgElems + titleElem + legendElems + explainElems }
     }
 
     fun createTest() {
+
+        val textStyle = TextStyle("red", 0.5, Font.Family.monospace)
 
         fun testElems(): List<Element> = listOf(
             ExopElems.planet(Point(40.0, 50.0), 20.0),
@@ -276,10 +289,8 @@ object SVG {
             Basic.line(Point(10.0, 10.0), Point(200.0, 500.0), 0.2, "green"),
             Basic.line(Point(10.0, 10.0), Point(200.0, 510.0), 0.1, "blue"),
             Basic.line(Point(10.0, 10.0), Point(200.0, 520.0), 0.5, "orange"),
-            ExopElems.nameGeneral(
-                Point(10.0, 200.0), "hallo wolfi", 20.0, 10.0, Font.Family.fantasy
-            ),
-            ExopElems.nameGeneral(Point(11.0, 400.0), "I like DJ", 20.0, 20.0, Font.Family.monospace),
+            ExopElems.nameGeneral(Point(10.0, 200.0), "hallo wolfi", 20.0, 10.0, textStyle),
+            ExopElems.nameGeneral(Point(11.0, 400.0), "I like DJ", 20.0, 20.0, textStyle),
         )
 
         println("create test svg")
@@ -338,29 +349,29 @@ object SVG {
         }
 
         fun nameGeneral(
-            origin: Point, text: String, size: Double, offset: Double, fontFamily: Font.Family
+            origin: Point, text: String, size: Double, offset: Double, textStyle: TextStyle
         ): Element {
             val origin1 = Point(
                 origin.x.toDouble() + offset, origin.y.toDouble() - offset
             )
             return Basic.text(
-                text, origin1, "blue", 0.8, size, fontFamily = fontFamily, textAnchorLeft = false
+                text, origin1, size, textStyle, textAnchorLeft = false
             )
         }
 
         fun nameSystem(
-            origin: Point, text: String, size: Double, offset: Double, fontFamily: Font.Family
+            origin: Point, text: String, size: Double, offset: Double, textStyle: TextStyle
         ): Element {
             val origin1 = Point(
                 origin.x.toDouble() - offset, origin.y.toDouble() - offset
             )
             return Basic.text(
-                text, origin1, "blue", 0.8, size, fontFamily = fontFamily, textAnchorLeft = true
+                text, origin1, size, textStyle, textAnchorLeft = true
             )
         }
 
         fun legendElems(
-            xBase: Number, yBase: Number, fontFamily: Font.Family, zoom: Double = 1.0, textAnchorLeft: Boolean = true
+            xBase: Number, yBase: Number, textStyle: TextStyle, zoom: Double = 1.0, textAnchorLeft: Boolean = true
         ): List<Element> {
             data class LegendElem(
                 val text: String, val fElem: (Point, Double) -> Element
@@ -383,10 +394,8 @@ object SVG {
                     Basic.text(
                         elem.text,
                         txtOrigin,
-                        color = "blue",
                         size = txtSize,
-                        opacity = 1.0,
-                        fontFamily = fontFamily,
+                        textStyle = textStyle,
                         textAnchorLeft = textAnchorLeft
                     ),
                 )
@@ -405,7 +414,7 @@ object SVG {
             lines: List<String>,
             xBase: Number,
             yBase: Number,
-            fontFamily: Font.Family,
+            textStyle: TextStyle,
             zoom: Double = 1.0,
             textAnchorLeft: Boolean = true
         ): List<Element> {
@@ -420,10 +429,8 @@ object SVG {
                     Basic.text(
                         line,
                         txtOrigin,
-                        color = "blue",
                         size = txtSize,
-                        fontFamily = fontFamily,
-                        opacity = 1.0,
+                        textStyle = textStyle,
                         textAnchorLeft = textAnchorLeft
                     ),
                 )
@@ -516,18 +523,16 @@ object SVG {
         fun text(
             text: String,
             origin: Point,
-            color: String,
-            opacity: Double,
             size: Double,
-            fontFamily: Font.Family,
+            textStyle: TextStyle,
             textAnchorLeft: Boolean = false
         ): Element {
             val elem = svgElem("text")
             elem.setAttribute("x", origin.x.f())
             elem.setAttribute("y", origin.y.f())
-            elem.setAttribute("fill", color)
-            elem.setAttribute("opacity", opacity.f())
-            elem.setAttribute("font-family", fontFamily.def.fontName)
+            elem.setAttribute("fill", textStyle.color)
+            elem.setAttribute("opacity", textStyle.opacity.f())
+            elem.setAttribute("font-family", textStyle.fontFamily.def.fontName)
             elem.setAttribute("font-size", "${size.f()}em")
             if (textAnchorLeft) elem.setAttribute("text-anchor", "end")
             elem.text = text

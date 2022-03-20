@@ -1,9 +1,9 @@
 == current milestone
 
 img_improve
-    - common parameters for text size, opacity, font and color
     - add a subtitle
 work
+    - common parameters for text size, opacity, font and color
 done
     - font configurable
     - add explanation text
