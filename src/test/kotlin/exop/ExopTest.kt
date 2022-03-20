@@ -1,10 +1,11 @@
 package exop
 
+import exop.ExopImages.loadSolarSystem
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 
-internal class MainKtTest {
+internal class ExopTest {
 
     private val massSun = 1.989e30 // kg
     private val secondsInDay = 24.0 * 60 * 60
@@ -23,7 +24,7 @@ internal class MainKtTest {
     )
     fun largeSemiAxis(name: String, expectedDist: Double) {
         val planet = sol.star.planets.first { it.name == name }
-        val dist = largeSemiAxis(planet.period!! * secondsInDay, 0.0, massSun)
+        val dist = ExopImages.largeSemiAxis(planet.period!! * secondsInDay, 0.0, massSun)
         assertEquals(expectedDist, dist, 0.1)
     }
 }
