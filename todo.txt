@@ -1,19 +1,41 @@
-img_improve
-    - write star name if it is different to system name
-    - scale text size
-    - add title
-    - add explanation text
+== current milestone
+
+---------------------------------------------------------------------------
+== open milestones
 
 tech02
+    - make a dockerfile for easy build and deployment
+    - make some svg rendering
+    - refactor planet - and star names into one object names.
+    - Remove name method from data class
+    - Make image elems borders general
+
+various
+    - include binary systems
+
+homepage
+    - ???
+
+----------------------------------------------------------------------------
+==done milestones
+
+img_improve
+    - add a subtitle
+    - common parameters for text size, opacity, font and color
+    - font configurable
+    - add explanation text
+    - add a legend
+    - add title
+    - Fix Gliese 163 naming
+    - write text after images
+    - write star name if it is different to system name
+    - scale text size
+
+tech01
+    - Move Svg to separate file
     - delete test resources
     - make solar system testcase by names
     - make some common functions between i01, i02
-
-done
-tech01
-    - make some svg rendering
-    - make a dockerfile for easy build and deployment
-
 
 drawing3
     done
@@ -22,4 +44,3 @@ drawing3
     - Show planets with unknown radius different. e.g. more transparent
     - enable creation of two images. i01 'Inner Solar System', i02 'Earthlike'
 
-------------------------------------------------------------------------------
