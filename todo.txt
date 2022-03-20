@@ -1,10 +1,11 @@
 == current milestone
 
 img_improve
-    - font configurable
     - common parameters for text size, opacity, font and color
+    - add a subtitle
 work
 done
+    - font configurable
     - add explanation text
     - add a legend
     - add title
