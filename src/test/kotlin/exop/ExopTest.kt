@@ -23,7 +23,7 @@ internal class ExopTest {
         "Neptune, 30.07"
     )
     fun largeSemiAxis(name: String, expectedDist: Double) {
-        val planet = sol.star.planets.first { it.name == name }
+        val planet = sol.star.planets.first { Names.planetName(it.names, it.systName) == name }
         val dist = ExopImages.largeSemiAxis(planet.period!! * secondsInDay, 0.0, massSun)
         assertEquals(expectedDist, dist, 0.1)
     }

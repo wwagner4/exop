@@ -3,6 +3,7 @@ tech02
     - Catalogue dir as cli option
     - Output dir as cli option
 current:
+    - Catalogue dir as cli option
 done:
     - Make image elems borders general
     - refactor planet - and star names into one object names.

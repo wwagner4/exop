@@ -15,12 +15,15 @@ fun main(args: Array<String>) {
     val action by parser.argument(
         ArgType.Choice<Action>(), description = argDescription()
     )
+    val catalogue by parser.option(
+        ArgType.String, shortName = "c", description = "Path containing the 'open exoplanet catalogue' in the local file system"
+    )
     try {
         parser.parse(args)
         when (action) {
-            Action.i01 -> ExopImages.i01(action.name, action.description)
-            Action.svgt -> ExopImages.createTest()
-            Action.tryout -> Tryout.tryout()
+            Action.i01 -> ExopImages.i01(action.name, action.description, catalogue)
+            Action.svgt -> ExopImages.createTest(catalogue)
+            Action.tryout -> Tryout.tryout(catalogue)
         }
     } catch (e: IllegalStateException) {
         println("ERROR: ${e.message}")

@@ -57,7 +57,7 @@ object ExopImages {
     )
 
 
-    fun i01(id: String, title: String) {
+    fun i01(id: String, title: String, catalogue: String?) {
 
         println("creating image '${title}'")
         val numberOfSystems = 100
@@ -264,7 +264,7 @@ object ExopImages {
                 textAnchorLeft = true,
             )
 
-            val outDir = Util.outDir()
+            val outDir = Util.outDir(catalogue)
             val outFile = outDir.resolve("exop-${id}-${pageSize.name}.svg")
             svgBasic.writeSvg(
                 outFile, pageSize, textStyle.fontFamily,
@@ -283,7 +283,7 @@ object ExopImages {
     }
 
 
-    fun createTest() {
+    fun createTest(catalogue: String?) {
 
         fun img(pageSize: Util.PageSize) {
             val unit = "mm"
@@ -370,7 +370,7 @@ object ExopImages {
             println("create test svg")
             val formatStr = "$pageSize-${fontFam.name}"
             val nam = "t2-$formatStr"
-            val outDir = Util.outDir()
+            val outDir = Util.outDir(catalogue)
             val outFile = outDir.resolve("$nam.svg")
 
             if (Files.notExists(outDir)) Files.createDirectories(outDir)

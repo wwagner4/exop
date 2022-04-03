@@ -2,6 +2,7 @@ package exop
 
 import java.nio.file.Files
 import java.nio.file.Path
+import kotlin.io.path.absolute
 
 object Util {
 
@@ -18,12 +19,20 @@ object Util {
         val heightMm: Double get() = height
     }
 
-    fun outDir(): Path {
-        val out = Path.of("/out")
-        if (Files.exists((out))) return out
-        val target = Path.of("target", "images")
-        if (Files.notExists(target)) Files.createDirectories(target)
-        return target
+    fun outDir(default: String?): Path {
+        if (default == null) {
+            val out = Path.of("/out")
+            if (Files.exists((out))) return out
+            val target = Path.of("target", "images")
+            if (Files.notExists(target)) Files.createDirectories(target)
+            return target
+        }
+        else {
+            val path = Path.of(default)
+            if (Files.notExists(path)) throw IllegalStateException("${path.absolute()} does not exist")
+            if (!Files.isDirectory(path)) throw IllegalStateException("${path.absolute()} is not a directory")
+            return path
+        }
     }
 
 
