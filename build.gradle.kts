@@ -5,8 +5,8 @@ plugins {
     application
 }
 
-group = "me.wwagner4"
-version = "1.0-SNAPSHOT"
+group = "net.entelijan"
+version = "1.0"
 
 repositories {
     mavenCentral()
@@ -24,7 +24,7 @@ tasks.test {
 }
 
 tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "11"
+    kotlinOptions.jvmTarget = "16"
 }
 
 application {
