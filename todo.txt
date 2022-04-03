@@ -1,12 +1,12 @@
 == current milestone
 tech02
-    - refactor planet - and star names into one object names.
-    - Remove name method from data class
-    - Make image elems borders general
     - Catalogue dir as cli option
     - Output dir as cli option
 current:
 done:
+    - Make image elems borders general
+    - refactor planet - and star names into one object names.
+    - Remove name method from data class
     - make a dockerfile for easy build and deployment
 
 ---------------------------------------------------------------------------

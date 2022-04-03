@@ -28,31 +28,14 @@ object ExopImages {
         val dist: Double?, // in au (astronomic units)
         val radius: Double?, // in radius jupiter. radius jupiter = 71492km
         val period: Double?  // in days
-    ) {
-        val name: String
-            get() {
-                val nam = names.first()
-                if (nam.startsWith(systName)) {
-                    val shortNam = nam.substring(systName.length).trim()
-                    if (shortNam.length <= 1) return ""
-                    return shortNam
-                }
-                return nam
-            }
-    }
+    )
 
     data class Star(
         val names: List<String>,
         val radius: Double?, // in radius sun. radius sun = 696342km
         val mass: Double?, // in solar masses
         val planets: List<Planet>
-    ) {
-        val name: String
-            get() {
-                return StarName.starName(names)
-            }
-
-    }
+    )
 
     data class SolarSystem(
         val name: String,
@@ -173,10 +156,11 @@ object ExopImages {
                     systTxtOffset,
                     textStyle,
                 )
-                val starTxtElem = if (solarSystem.name == solarSystem.star.name) null
+                val starName = Names.starName(solarSystem.star.names)
+                val starTxtElem = if (solarSystem.name == starName) null
                 else svgExop.nameSystem(
                     Point(borderLeft, paintY),
-                    solarSystem.star.name,
+                    starName,
                     systTxtSize,
                     systTxtOffset,
                     textStyle,
@@ -192,7 +176,7 @@ object ExopImages {
                         else {
                             val elemPlanetName = svgExop.nameSystem(
                                 Point(paintPlanetX, paintY),
-                                it.name,
+                                Names.planetName(it.names, it.systName),
                                 systTxtSize,
                                 systTxtOffset,
                                 textStyle,

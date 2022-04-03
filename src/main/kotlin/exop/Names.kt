@@ -1,6 +1,6 @@
 package exop
 
-object StarName {
+object Names {
 
     private val catalogPrefixes =
         listOf(
@@ -62,6 +62,16 @@ object StarName {
         val noCatNames = names.filter { noCatalog(it) }
         return if (noCatNames.isEmpty()) names[0]
         else noCatNames[0]
+    }
+
+    fun planetName(names: List<String>, systName: String): String {
+        val nam = names.first()
+        if (nam.startsWith(systName)) {
+            val shortNam = nam.substring(systName.length).trim()
+            if (shortNam.length <= 1) return ""
+            return shortNam
+        }
+        return nam
     }
 
 }
