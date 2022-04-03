@@ -10,3 +10,4 @@ podman run -v <OUT_DIR>:/out exop i01
 # e.g.
 podman run -v /home/wwagner4/work/exop-out:/out exop i01
 podman run -v $(pwd):/out exop i01
+podman run -v $(pwd):/out exop --help

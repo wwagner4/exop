@@ -1,6 +1,6 @@
 package exop
 
-import exop.ExopImages.loadSolarSystem
+import exop.Util.loadSolarSystem
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
@@ -9,7 +9,7 @@ internal class ExopTest {
 
     private val massSun = 1.989e30 // kg
     private val secondsInDay = 24.0 * 60 * 60
-    private val sol = loadSolarSystem()
+    private val sol = loadSolarSystem(null)
 
     @ParameterizedTest
     @CsvSource(

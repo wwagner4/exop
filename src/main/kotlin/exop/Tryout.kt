@@ -2,8 +2,8 @@ package exop
 
 object Tryout {
 
-    fun tryout(catalogue: String?) {
-        println("Tryout $catalogue")
+    fun tryout(output: String?, catalogue: String?) {
+        println("Tryout. output:'$output' catalogue:'$catalogue'")
     }
 
 }

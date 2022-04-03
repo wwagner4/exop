@@ -1,14 +1,4 @@
 == current milestone
-tech02
-    - Catalogue dir as cli option
-    - Output dir as cli option
-current:
-    - Catalogue dir as cli option
-done:
-    - Make image elems borders general
-    - refactor planet - and star names into one object names.
-    - Remove name method from data class
-    - make a dockerfile for easy build and deployment
 
 ---------------------------------------------------------------------------
 == open milestones
@@ -28,6 +18,13 @@ homepage
 ----------------------------------------------------------------------------
 ==done milestones
 
+tech02
+    - Output dir as cli option
+    - Catalogue dir as cli option
+    - Make image elems borders general
+    - refactor planet - and star names into one object names.
+    - Remove name method from data class
+    - make a dockerfile for easy build and deployment
 img_improve
     - add a subtitle
     - common parameters for text size, opacity, font and color
