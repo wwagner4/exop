@@ -1,4 +1,13 @@
 == current milestone
+homepage
+    - start server (tomcat) containing frontend
+    - create SVGs on click.
+    - Update catalog on click
+    - Update catalog with cron job
+work in progres
+    - create reactive project
+done
+
 
 ---------------------------------------------------------------------------
 == open milestones
@@ -7,13 +16,6 @@ various
     - include binary systems
     - analyse distance (greatHalfAxis) of catalog. Evl. use instead of period
     - show jupiter and saturn for size comparison
-
-homepage
-    - create reactive project
-    - start server (tomcat) containing frontend
-    - create SVGs on click.
-    - Update catalog on click
-    - Update catalog with cron job
 
 ----------------------------------------------------------------------------
 ==done milestones
