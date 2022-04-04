@@ -6,7 +6,7 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <Main/>
+        <Main url= "http://localhost:8080"/>
       </header>
     </div>
   );
