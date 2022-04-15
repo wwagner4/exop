@@ -1,6 +1,7 @@
 package exop
 
 import io.ktor.application.*
+import io.ktor.features.*
 import io.ktor.http.*
 import io.ktor.response.*
 import io.ktor.routing.*
@@ -40,13 +41,26 @@ object Server {
         val baseDir = Path("src", "exop-react", "build")
 
         embeddedServer(Netty, 8080) {
-            install(Routing) {
+            install(CORS)    {
+                method(HttpMethod.Options)
+                method(HttpMethod.Get)
+                method(HttpMethod.Post)
+                method(HttpMethod.Put)
+                method(HttpMethod.Delete)
+                method(HttpMethod.Patch)
+                header(HttpHeaders.AccessControlAllowHeaders)
+                header(HttpHeaders.ContentType)
+                header(HttpHeaders.AccessControlAllowOrigin)
+                allowCredentials = true
+                anyHost()
+            }
+            routing {
                 get("/testsvg") {
                     call.respondText(contentTestSvg, contentType = ContentType.Image.SVG)
                 }
                 get("/image") {
                     val sw = StringWriter()
-                    ExopImages.i01(sw, Util.PageSize.A4,null)
+                    ExopImages.i01(sw, Util.PageSize.A4, null)
                     val content = sw.buffer.toString()
                     call.respondText(content, contentType = ContentType.Image.SVG)
                 }
