@@ -1,67 +1,118 @@
 import axios from "axios";
+import {useState} from "react";
+import img01 from "./img01a.png";
 
 interface MyProps {
     url: string
 }
 
-export default function Main(props: MyProps) {
-    console.log(props.url)
-    return (<div>
-            <h1>exop</h1>
-            <p>visualize known exoplanets</p>
-            <p>
-                <button onClick={updateCatalog}>update catalog</button>
-            </p>
-            <p>
-                <button onClick={createImage}>create image</button>
-            </p>
-            <div>
-                <svg xmlns="http://www.w3.org/2000/svg" width="215.000mm" height="297.000mm">
-                    <rect x="0.000mm" y="0.000mm" width="210.000mm" height="297.000mm"
-                          style={{fill: 'white', opacity: 1.0}}/>
-                    <line x1="21.000mm" y1="173.745mm" x2="199.500mm" y2="173.745mm" opacity="0.500"
-                          style={{stroke: 'blue', strokeWidth: '12mm'}}/>
-                    <line x1="21.000mm" y1="196.614mm" x2="199.500mm" y2="196.614mm" opacity="0.500"
-                          style={{stroke: 'blue', strokeWidth: '0.045mm'}}/>
-                    <circle cx="38.850mm" cy="196.614mm" r="22.869mm" opacity="0.500" fill="orange"/>
-                    <circle cx="74.550mm" cy="196.614mm" r="22.869mm" opacity="0.500" fill="orange"/>
-                    <circle cx="92.400mm" cy="196.614mm" r="11.435mm" opacity="0.500" fill="green"/>
-                    <text x="21.000mm" y="82.269mm" fill="black" opacity="0.900" style={{
-                        fontFamily: "serif",
-                        fontSize: '20.790mm'
-                    }}>Test Title
-                    </text>
-                    <text x="199.500mm" y="105.138mm" fill="black" opacity="0.900" fontFamily="serif"
-                          fontSize="20.790mm" textAnchor="end">Test Title right
-                    </text>
-                    <text x="199.500mm" y="128.007mm" fill="black" opacity="0.900" fontFamily="serif"
-                          fontSize="10.395mm" textAnchor="end">This is a normal text
-                    </text>
-                    <text x="21.000mm" y="150.876mm" fill="black" opacity="0.900" fontFamily="serif"
-                          fontSize="10.395mm">This is a normal text
-                    </text>
-                </svg>
+interface MainState {
+    info: string
+    showImageList: boolean
+}
 
+export default function Main(props: MyProps) {
+    const [state, setState] = useState<MainState>({info: "", showImageList: false});
+    const openInNewTab = (url: string) => {
+        const newWindow = window.open(url, '_blank', 'noopener,noreferrer')
+        if (newWindow) newWindow.opener = null
+    }
+    return (<div>
+            <div>
+                <button onClick={showCreateImage}>create poster</button>
+                &nbsp;&nbsp;&nbsp;&nbsp;
+                <button onClick={updateCatalog}>update catalogue</button>
+                &nbsp;&nbsp;&nbsp;&nbsp;
+                <button onClick={help}>?</button>
+            </div>
+            <p className="info-text" dangerouslySetInnerHTML={{__html: state.info}}></p>
+            <div className="info-text" style={{display: state.showImageList ? 'block' : 'none'}}>
+                <table className="info-table-top">
+                    <tbody>
+                    <tr>
+                        <td>Click one of the posters sizes to create the poster.</td>
+                    </tr>
+                    </tbody>
+                </table>
+                <table>
+                    <tbody>
+                    <tr>
+                        <td><img className={"list-img"} alt={"img01"} src={img01}></img></td>
+                        <td>Earth-like Distance<br/>
+                            <button className="info-text" onClick={() => createImage("A4")}>A4</button>
+                            &nbsp;&nbsp;
+                            <button className="info-text" onClick={() => createImage("A3")}>A3</button>
+                            &nbsp;&nbsp;
+                            <button className="info-text" onClick={() => createImage("A2")}>A2</button>
+                            &nbsp;&nbsp;
+                            <button className="info-text" onClick={() => createImage("A1")}>A1</button>
+                            &nbsp;&nbsp;
+                            <button className="info-text" onClick={() => createImage("A0")}>A0</button>
+                            &nbsp;&nbsp;
+                        </td>
+                        <td>Planetary systems containing one planet that has about the same <br/>
+                            distance to its star as the earth to the sun
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+                <table className="info-table-bottom">
+                    <tbody>
+                    <tr>
+                        <td>Poster sizes</td>
+                        <td>
+                            A4&nbsp;&nbsp;210 x 297mm, 8.3' x 11.7'<br/>
+                            A3&nbsp;&nbsp;297 x 420mm, 11.7' x 16.5'<br/>
+                            A2&nbsp;&nbsp;420 x 594mm, 16.6' x 23.4'<br/>
+                            A1&nbsp;&nbsp;594 x 841mm, 23.4' x 33.1'<br/>
+                            A0&nbsp;&nbsp;841 x 1189mm, 33.1' x 46.8'<br/>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     );
 
     function updateCatalog() {
-        console.log("update catalog image")
-        axios.get(`${props.url}/image`)
+        console.log("update catalogue")
+        setState({info: "update in progress ...", showImageList: false})
+        let url = `${props.url}/update`
+        axios.get(`${props.url}/update`)
             .then(response => {
-                console.log(response);
                 console.log(response.data);
+                setState({info: response.data, showImageList: false})
+            })
+            .catch(reason => {
+                let msg = `Error calling url ${url}. ${reason.message}`
+                console.log(JSON.stringify(reason));
+                setState({info: msg, showImageList: false})
             })
     }
 
-    function createImage() {
-        console.log("create image testsvg")
-        axios.get(`${props.url}/testsvg`)
-            .then(response => {
-                console.log(response);
-            })
+    function createImage(size: string) {
+        console.log("create image")
+        openInNewTab(`${props.url}/image?size=${size}`)
     }
+
+    function showCreateImage() {
+        console.log("sho create image")
+        if (state.showImageList) setState({info: "", showImageList: false})
+        else setState({info: "", showImageList: true})
+    }
+
+    function help() {
+        console.log("help")
+        let info = "<table><tbody>\n" +
+            "    <tr><td>create poster:</td><td>creates a poster of the given size in your browser " +
+            "which you <br>can print or export as pdf.</td></tr>\n" +
+            "    <tr><td>update catalogue:</td><td>Loads the latest version of the exoplanet catalogue on the server. <br>" +
+            "        If the update was successful a list of the latest updates is displayed in <br>the output field.</td></tr>\n" +
+            "</tbody></table>"
+        if (state.info.length === 0) setState({info: info, showImageList: false})
+        else setState({info: "", showImageList: false})
+    }
+
 
 }
 

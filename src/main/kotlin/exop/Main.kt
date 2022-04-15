@@ -7,7 +7,7 @@ import java.io.Writer
 
 @Suppress("EnumEntryName")
 enum class Action(val description: String) {
-    i01("Earthlike Distance"),
+    i01("Earth-like Distance"),
     server("Start a web-server"),
     svgt("Test svg creation"),
     tryout("Helpful during development"),

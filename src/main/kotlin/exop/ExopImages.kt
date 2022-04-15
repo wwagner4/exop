@@ -34,7 +34,7 @@ object ExopImages {
 
     fun i01(writer: Writer, pageSize: Util.PageSize, catalogue: String?) {
 
-        val title = "Earthlike Distance"
+        val title = "Earth-like Distance"
         println("creating image '${title}'")
         val numberOfSystems = 100
 
@@ -77,12 +77,12 @@ object ExopImages {
         val planetSizeFactor = 1.7
         val starSizeFactor = 1.7
 
-        val txtSize = 0.01 * pageSize.heightMm
+        val txtSize = 0.008 * pageSize.heightMm
         val maxSystemDist1 = 1.7
 
         val titleTxtSize = txtSize * 3.2
 
-        val titleY = titleTxtSize * 2.5
+        val titleY = titleTxtSize * 2.0
         val subTitleY = titleY + txtSize * 2.0
         val explainY = subTitleY + txtSize * 4.0
         val legendY = explainY + 5.5 * txtSize
@@ -91,9 +91,9 @@ object ExopImages {
             color = "blue", opacity = 0.8, fontFamily = Font.Family.turretRoad
         )
 
-        val borderLeft = 0.1 * pageSize.widthMm
+        val borderLeft = 0.08 * pageSize.widthMm
         val borderRight = 0.07 * pageSize.widthMm
-        val borderTop = 0.1 * pageSize.heightMm
+        val borderTop = 0.08 * pageSize.heightMm
         val borderBottom = 0.05 * pageSize.heightMm
 
         val systVertDist = (pageSize.heightMm - borderTop - borderBottom) / (solarSystems.size - 1)
@@ -209,7 +209,7 @@ object ExopImages {
             val datStr = fmt.format(dat)
             val origin = Point(pageSize.widthMm - borderRight, subTitleY)
             return svgBasic.text(
-                "$title as of $datStr",
+                "$title. Creation date: $datStr",
                 origin, size = txtSize, textStyle = textStyle, textAnchorLeft = true
             )
         }
@@ -219,8 +219,8 @@ object ExopImages {
         val subTitleElem = subTitleElem()
         val explainElems = svgExop.multilineText(
             listOf(
-                "Planetary systems containing one planet that has",
-                "about the same distance to its star than the earth",
+                "Planetary systems containing one planet that has about",
+                "the same distance to its star as the earth to the sun",
             ),
             pageSize.widthMm - borderRight,
             explainY,
@@ -254,9 +254,9 @@ object ExopImages {
         val textStyle = TextStyle("black", 0.9, fontFam)
         val objOpacity = 0.5
 
-        val borderLeft = 0.1 * pageSize.widthMm
-        val borderRight = 0.05 * pageSize.widthMm
-        val borderTop = 0.2 * pageSize.heightMm
+        val borderLeft = 0.01 * pageSize.widthMm
+        val borderRight = 0.01 * pageSize.widthMm
+        val borderTop = 0.12 * pageSize.heightMm
         val txtSizeTitle = 0.07 * pageSize.heightMm
         val txtSize = txtSizeTitle * 0.5
         val strokeWidth = pageSize.heightMm * 0.00015

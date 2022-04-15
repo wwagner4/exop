@@ -1,5 +1,6 @@
 package exop
 
+import exop.Util.runCommand
 import io.ktor.application.*
 import io.ktor.features.*
 import io.ktor.http.*
@@ -17,31 +18,13 @@ object Server {
     fun start(output: String?, catalogue: String?) {
         println("Starting a web-server. catalogue:$catalogue output:$output")
 
-
-        val contentTestSvg = """
-            <?xml version="1.0" encoding="UTF-8"?>
-            <svg xmlns="http://www.w3.org/2000/svg" width="210.000mm" height="297.000mm">
-              <rect x="0.000mm" y="0.000mm" width="210.000mm" height="297.000mm" opacity="1.000" style="fill:white;" />
-              <line x1="21.000mm" y1="173.745mm" x2="199.500mm" y2="173.745mm" opacity="0.500" style="stroke:blue;stroke-width:0.045mm" />
-              <line x1="21.000mm" y1="196.614mm" x2="199.500mm" y2="196.614mm" opacity="0.500" style="stroke:blue;stroke-width:0.045mm" />
-              <circle cx="38.850mm" cy="196.614mm" r="22.869mm" opacity="0.500" fill="orange" />
-              <circle cx="74.550mm" cy="196.614mm" r="22.869mm" opacity="0.500" fill="orange" />
-              <circle cx="92.400mm" cy="196.614mm" r="11.435mm" opacity="0.500" fill="green" />
-              <text x="21.000mm" y="82.269mm" fill="black" opacity="0.900" font-family="serif" font-size="20.790mm">Test Title</text>
-              <text x="199.500mm" y="105.138mm" fill="black" opacity="0.900" font-family="serif" font-size="20.790mm" text-anchor="end">Test Title right</text>
-              <text x="199.500mm" y="128.007mm" fill="black" opacity="0.900" font-family="serif" font-size="10.395mm" text-anchor="end">This is a normal text</text>
-              <text x="21.000mm" y="150.876mm" fill="black" opacity="0.900" font-family="serif" font-size="10.395mm">This is a normal text</text>
-            </svg>
-        """.trimIndent()
-
-        val contentJson = """
-            {"data": "Wolfi"}
-        """.trimIndent()
+        val catDir = Util.catDir(catalogue)
+        println("Catalogue dir:'${catDir.absolute()}'")
 
         val baseDir = Path("src", "exop-react", "build")
 
         embeddedServer(Netty, 8080) {
-            install(CORS)    {
+            install(CORS) {
                 method(HttpMethod.Options)
                 method(HttpMethod.Get)
                 method(HttpMethod.Post)
@@ -55,17 +38,26 @@ object Server {
                 anyHost()
             }
             routing {
-                get("/testsvg") {
-                    call.respondText(contentTestSvg, contentType = ContentType.Image.SVG)
+                get("/update") {
+                    val htmlText = try {
+                        "git pull".runCommand(catDir)
+                        val stdout = "git --no-pager log -n8 --date=short".runCommand(catDir)!!
+                        val rows = Util.parseGitLogOutput(stdout).map{ "<tr><td>${it.date}</td><td>${it.text}</td>"}.joinToString("")
+                        val table = "<table><tbody>$rows</tbody></table>"
+                        "update was successful. if you create now a poster you will use the latest known exoplanet data.<br><br>$table"
+                    } catch (e: Exception){
+                        "Error on catalogue update ${e.message}"
+                    }
+                    call.respondText(htmlText, contentType = ContentType.Text.Html)
                 }
                 get("/image") {
+                    val size: String = call.request.queryParameters["size"] ?: "A4"
+                    val ps = Util.PageSize.valueOf(size)
+                    println("get $size image size: $ps")
                     val sw = StringWriter()
-                    ExopImages.i01(sw, Util.PageSize.A4, null)
+                    ExopImages.i01(sw, ps, null)
                     val content = sw.buffer.toString()
                     call.respondText(content, contentType = ContentType.Image.SVG)
-                }
-                get("/ww") {
-                    call.respondText(contentJson, contentType = ContentType.Application.Json)
                 }
                 get("/react") {
                     val file = baseDir.resolve("index.html")
