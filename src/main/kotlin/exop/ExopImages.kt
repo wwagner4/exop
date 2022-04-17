@@ -4,7 +4,7 @@ import exop.Util.loadSolarSystem
 import exop.svg.Basic
 import exop.svg.ExopElems
 import org.jdom2.Element
-import java.nio.file.Files
+import java.io.Writer
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import kotlin.math.PI
@@ -32,8 +32,9 @@ object ExopImages {
     )
 
 
-    fun i01(id: String, title: String, output: String?, catalogue: String?) {
+    fun i01(writer: Writer, pageSize: Util.PageSize, catalogue: String?) {
 
+        val title = "Earth-like Distance"
         println("creating image '${title}'")
         val numberOfSystems = 100
 
@@ -69,297 +70,266 @@ object ExopImages {
 
         val solarSystems = getFilteredSystems()
 
-        fun createSvg(pageSize: Util.PageSize) {
-            val unit = "mm"
-            val svgBasic = Basic(unit)
-            val svgExop = ExopElems(svgBasic)
+        val unit = "mm"
+        val svgBasic = Basic(unit)
+        val svgExop = ExopElems(svgBasic)
 
-            val planetSizeFactor = 1.7
-            val starSizeFactor = 1.7
+        val planetSizeFactor = 1.7
+        val starSizeFactor = 1.7
 
-            val txtSize = 0.01 * pageSize.heightMm
-            val maxSystemDist1 = 1.7
+        val txtSize = 0.008 * pageSize.heightMm
+        val maxSystemDist1 = 1.7
 
-            val titleTxtSize = txtSize * 3.2
+        val titleTxtSize = txtSize * 3.2
 
-            val titleY = titleTxtSize * 2.5
-            val subTitleY = titleY + txtSize * 2.0
-            val explainY = subTitleY + txtSize * 4.0
-            val legendY = explainY + 5.5 * txtSize
+        val titleY = titleTxtSize * 2.0
+        val subTitleY = titleY + txtSize * 2.0
+        val explainY = subTitleY + txtSize * 4.0
+        val legendY = explainY + 5.5 * txtSize
 
-            val textStyle = TextStyle(
-                color = "blue", opacity = 0.8, fontFamily = Font.Family.turretRoad
+        val textStyle = TextStyle(
+            color = "blue", opacity = 0.8, fontFamily = Font.Family.turretRoad
+        )
+
+        val borderLeft = 0.08 * pageSize.widthMm
+        val borderRight = 0.07 * pageSize.widthMm
+        val borderTop = 0.08 * pageSize.heightMm
+        val borderBottom = 0.05 * pageSize.heightMm
+
+        val systVertDist = (pageSize.heightMm - borderTop - borderBottom) / (solarSystems.size - 1)
+        val systTxtSize = systVertDist * 0.45
+        val systTxtOffset = systVertDist * 0.15
+
+        val allParams = allSystemParameters(solarSystems)
+
+        fun solSysElems(solarSystem: Util.SolarSystem, index: Int): List<Element> {
+            val isSol = solarSystem.name == "Sun"
+            val systemDist = maxPlanetDist(solarSystem)
+                ?: throw IllegalStateException("solar system with no planet ${solarSystem.name}")
+
+            val paintY = index * systVertDist + borderTop
+
+            val paintSystemDist = (pageSize.widthMm - (borderLeft + borderRight)) * systemDist / maxSystemDist1
+            val paintMaxSystemDist = (pageSize.widthMm - borderRight)
+            val lineElem = svgExop.planetLine(
+                Point(borderLeft, paintY), Point(
+                    min(borderLeft + paintSystemDist, paintMaxSystemDist), paintY
+                ),
+                systVertDist * 0.01
             )
 
-            val borderLeft = 0.1 * pageSize.widthMm
-            val borderRight = 0.07 * pageSize.widthMm
-            val borderTop = 0.1 * pageSize.heightMm
-            val borderBottom = 0.05 * pageSize.heightMm
+            val paintRadiusStar =
+                starSizeFactor * systVertDist * (solarSystem.star.radius ?: 1.0) / allParams.maxStarRadius
+            val starElem = if (isSol) svgExop.sun(
+                Point(borderLeft, paintY), paintRadiusStar
+            )
+            else svgExop.star(Point(borderLeft, paintY), paintRadiusStar)
 
-            val systVertDist = (pageSize.heightMm - borderTop - borderBottom) / (solarSystems.size - 1)
-            val systTxtSize = systVertDist * 0.45
-            val systTxtOffset = systVertDist * 0.15
+            val systemTxtElem = svgExop.nameSystem(
+                Point(borderLeft, paintY), solarSystem.name,
+                systTxtSize,
+                systTxtOffset,
+                textStyle,
+            )
+            val starName = Names.starName(solarSystem.star.names)
+            val starTxtElem = if (solarSystem.name == starName) null
+            else svgExop.nameSystem(
+                Point(borderLeft, paintY),
+                starName,
+                systTxtSize,
+                systTxtOffset,
+                textStyle,
+                anchorLeft = false,
+            )
 
-            val allParams = allSystemParameters(solarSystems)
-
-            fun solSysElems(solarSystem: Util.SolarSystem, index: Int): List<Element> {
-                val isSol = solarSystem.name == "Sun"
-                val systemDist = maxPlanetDist(solarSystem)
-                    ?: throw IllegalStateException("solar system with no planet ${solarSystem.name}")
-
-                val paintY = index * systVertDist + borderTop
-
-                val paintSystemDist = (pageSize.widthMm - (borderLeft + borderRight)) * systemDist / maxSystemDist1
-                val paintMaxSystemDist = (pageSize.widthMm - borderRight)
-                val lineElem = svgExop.planetLine(
-                    Point(borderLeft, paintY), Point(
-                        min(borderLeft + paintSystemDist, paintMaxSystemDist), paintY
-                    ),
-                    systVertDist * 0.01
-                )
-
-                val paintRadiusStar =
-                    starSizeFactor * systVertDist * (solarSystem.star.radius ?: 1.0) / allParams.maxStarRadius
-                val starElem = if (isSol) svgExop.sun(
-                    Point(borderLeft, paintY), paintRadiusStar
-                )
-                else svgExop.star(Point(borderLeft, paintY), paintRadiusStar)
-
-                val systemTxtElem = svgExop.nameSystem(
-                    Point(borderLeft, paintY), solarSystem.name,
-                    systTxtSize,
-                    systTxtOffset,
-                    textStyle,
-                )
-                val starName = Names.starName(solarSystem.star.names)
-                val starTxtElem = if (solarSystem.name == starName) null
-                else svgExop.nameSystem(
-                    Point(borderLeft, paintY),
-                    starName,
-                    systTxtSize,
-                    systTxtOffset,
-                    textStyle,
-                    anchorLeft = false,
-                )
-
-                val planetElems = solarSystem.star.planets.flatMap {
-                    if (it.dist == null) listOf()
+            val planetElems = solarSystem.star.planets.flatMap {
+                if (it.dist == null) listOf()
+                else {
+                    val paintDistPlanet = (pageSize.widthMm - (borderLeft + borderRight)) * it.dist / maxSystemDist1
+                    val paintPlanetX = borderLeft + paintDistPlanet
+                    if (paintPlanetX > paintMaxSystemDist) listOf()
                     else {
-                        val paintDistPlanet = (pageSize.widthMm - (borderLeft + borderRight)) * it.dist / maxSystemDist1
-                        val paintPlanetX = borderLeft + paintDistPlanet
-                        if (paintPlanetX > paintMaxSystemDist) listOf()
-                        else {
-                            val elemPlanetName = svgExop.nameSystem(
-                                Point(paintPlanetX, paintY),
-                                Names.planetName(it.names, it.systName),
-                                systTxtSize,
-                                systTxtOffset,
-                                textStyle,
-                                anchorLeft = false,
+                        val elemPlanetName = svgExop.nameSystem(
+                            Point(paintPlanetX, paintY),
+                            Names.planetName(it.names, it.systName),
+                            systTxtSize,
+                            systTxtOffset,
+                            textStyle,
+                            anchorLeft = false,
+                        )
+                        if (isSol) {
+                            val radius = planetSizeFactor * systVertDist * it.radius!! / allParams.maxPlanetRadius
+                            val elemPlanet = svgExop.solarPlanet(
+                                Point(paintPlanetX, paintY), radius
                             )
-                            if (isSol) {
-                                val radius = planetSizeFactor * systVertDist * it.radius!! / allParams.maxPlanetRadius
-                                val elemPlanet = svgExop.solarPlanet(
+                            listOf(
+                                elemPlanet, elemPlanetName
+                            )
+                        } else {
+                            val elemPlanet = if (it.radius != null) {
+                                val radius = planetSizeFactor * systVertDist * it.radius / allParams.maxPlanetRadius
+                                svgExop.planet(
                                     Point(paintPlanetX, paintY), radius
                                 )
-                                listOf(
-                                    elemPlanet, elemPlanetName
-                                )
                             } else {
-                                val elemPlanet = if (it.radius != null) {
-                                    val radius = planetSizeFactor * systVertDist * it.radius / allParams.maxPlanetRadius
-                                    svgExop.planet(
-                                        Point(paintPlanetX, paintY), radius
-                                    )
-                                } else {
-                                    svgExop.planetUnknownRadius(
-                                        Point(
-                                            paintPlanetX, paintY
-                                        ), systVertDist * 0.3
-                                    )
-                                }
-                                listOf(
-                                    elemPlanet, elemPlanetName
+                                svgExop.planetUnknownRadius(
+                                    Point(
+                                        paintPlanetX, paintY
+                                    ), systVertDist * 0.3
                                 )
                             }
+                            listOf(
+                                elemPlanet, elemPlanetName
+                            )
                         }
                     }
                 }
-                return (listOf(lineElem, starElem) + planetElems + listOf(
-                    systemTxtElem, starTxtElem
-                )).filterNotNull()
             }
-
-            val bgElem = svgBasic.rect(
-                Point(0, 0), pageSize.widthMm, pageSize.heightMm, color = "white"
-            )
-
-            fun titleElem(): Element {
-                val theTitle = "Known Planetary Systems"
-                val origin = Point(pageSize.widthMm - borderRight, titleY)
-                return svgBasic.text(
-                    theTitle,
-                    origin, size = titleTxtSize, textStyle = textStyle, textAnchorLeft = true
-                )
-            }
-
-            fun subTitleElem(): Element {
-                val dat = LocalDate.now()
-                val fmt = DateTimeFormatter.ofPattern("MMM YYYY")
-                val datStr = fmt.format(dat)
-                val origin = Point(pageSize.widthMm - borderRight, subTitleY)
-                return svgBasic.text(
-                    "$title as of $datStr",
-                    origin, size = txtSize, textStyle = textStyle, textAnchorLeft = true
-                )
-            }
-
-            val imgElems = solarSystems.withIndex().flatMap { (i, sys) -> solSysElems(sys, i) }
-            val titleElem = titleElem()
-            val subTitleElem = subTitleElem()
-            val explainElems = svgExop.multilineText(
-                listOf(
-                    "Planetary systems containing one planet that has",
-                    "about the same distance to its star than the earth",
-                ),
-                pageSize.widthMm - borderRight,
-                explainY,
-                textStyle = textStyle,
-                textSize = txtSize,
-                textAnchorLeft = true
-            )
-            val legendElems = svgExop.legendElems(
-                pageSize.widthMm - borderRight,
-                legendY,
-                imgOffsetX = 0.6 * txtSize,
-                imgOffsetY = -0.3 * txtSize,
-                imgSize = txtSize * 0.3,
-                textStyle = textStyle,
-                textSize = txtSize,
-                textAnchorLeft = true,
-            )
-
-            val outDir = Util.outDir(output)
-            val outFile = outDir.resolve("exop-${id}-${pageSize.name}.svg")
-            svgBasic.writeSvg(
-                outFile, pageSize, textStyle.fontFamily,
-            ) { listOf(bgElem) + imgElems + titleElem + subTitleElem + legendElems + explainElems }
+            return (listOf(lineElem, starElem) + planetElems + listOf(
+                systemTxtElem, starTxtElem
+            )).filterNotNull()
         }
 
-        val sizes = listOf(
-            Util.PageSize.A0,
-            Util.PageSize.A1,
-            Util.PageSize.A2,
-            Util.PageSize.A3,
-            Util.PageSize.A4,
-            Util.PageSize.A5,
+        val bgElem = svgBasic.rect(
+            Point(0, 0), pageSize.widthMm, pageSize.heightMm, color = "white"
         )
-        sizes.forEach { createSvg(it) }
+
+        fun titleElem(): Element {
+            val theTitle = "Known Planetary Systems"
+            val origin = Point(pageSize.widthMm - borderRight, titleY)
+            return svgBasic.text(
+                theTitle,
+                origin, size = titleTxtSize, textStyle = textStyle, textAnchorLeft = true
+            )
+        }
+
+        fun subTitleElem(): Element {
+            val dat = LocalDate.now()
+            val fmt = DateTimeFormatter.ofPattern("MMM YYYY")
+            val datStr = fmt.format(dat)
+            val origin = Point(pageSize.widthMm - borderRight, subTitleY)
+            return svgBasic.text(
+                "$title. Creation date: $datStr",
+                origin, size = txtSize, textStyle = textStyle, textAnchorLeft = true
+            )
+        }
+
+        val imgElems = solarSystems.withIndex().flatMap { (i, sys) -> solSysElems(sys, i) }
+        val titleElem = titleElem()
+        val subTitleElem = subTitleElem()
+        val explainElems = svgExop.multilineText(
+            listOf(
+                "Planetary systems containing one planet that has about",
+                "the same distance to its star as the earth to the sun",
+            ),
+            pageSize.widthMm - borderRight,
+            explainY,
+            textStyle = textStyle,
+            textSize = txtSize,
+            textAnchorLeft = true
+        )
+        val legendElems = svgExop.legendElems(
+            pageSize.widthMm - borderRight,
+            legendY,
+            imgOffsetX = 0.6 * txtSize,
+            imgOffsetY = -0.3 * txtSize,
+            imgSize = txtSize * 0.3,
+            textStyle = textStyle,
+            textSize = txtSize,
+            textAnchorLeft = true,
+        )
+
+        svgBasic.writeSvg(
+            writer, pageSize, textStyle.fontFamily,
+        ) { listOf(bgElem) + imgElems + titleElem + subTitleElem + legendElems + explainElems }
     }
 
 
-    fun createTest(output: String?, catalogue: String?) {
+    fun createTest(writer: Writer, pageSize: Util.PageSize, catalogue: String?) {
 
-        fun img(pageSize: Util.PageSize) {
-            val unit = "mm"
-            val svgBasic = Basic(unit)
+        val unit = "mm"
+        val svgBasic = Basic(unit)
 
-            val fontFam = Font.Family.serif
-            val textStyle = TextStyle("black", 0.9, fontFam)
-            val objOpacity = 0.5
+        val fontFam = Font.Family.serif
+        val textStyle = TextStyle("black", 0.9, fontFam)
+        val objOpacity = 0.5
 
-            val borderLeft = 0.1 * pageSize.widthMm
-            val borderRight = 0.05 * pageSize.widthMm
-            val borderTop = 0.2 * pageSize.heightMm
-            val txtSizeTitle = 0.07 * pageSize.heightMm
-            val txtSize = txtSizeTitle * 0.5
-            val strokeWidth = pageSize.heightMm * 0.00015
+        val borderLeft = 0.01 * pageSize.widthMm
+        val borderRight = 0.01 * pageSize.widthMm
+        val borderTop = 0.12 * pageSize.heightMm
+        val txtSizeTitle = 0.07 * pageSize.heightMm
+        val txtSize = txtSizeTitle * 0.5
+        val strokeWidth = pageSize.heightMm * 0.00015
 
-            val lineHeight = txtSizeTitle * 1.1
-            val horObjDist = (pageSize.widthMm - (borderLeft + borderRight)) / 10.0
+        val lineHeight = txtSizeTitle * 1.1
+        val horObjDist = (pageSize.widthMm - (borderLeft + borderRight)) / 10.0
 
-            fun testElems(): List<Element> {
-                return listOf(
-                    svgBasic.rect(Point(0, 0), pageSize.widthMm, pageSize.heightMm, "white", 1.0),
-                    svgBasic.text(
-                        "Test Title",
-                        Point(borderLeft, borderTop + lineHeight * 1.0),
-                        txtSizeTitle,
-                        textStyle
-                    ),
-                    svgBasic.text(
-                        "Test Title right",
-                        Point(pageSize.widthMm - borderRight, borderTop + lineHeight * 2.0),
-                        txtSizeTitle,
-                        textStyle,
-                        textAnchorLeft = true
-                    ),
-                    svgBasic.text(
-                        "This is a normal text",
-                        Point(pageSize.widthMm - borderRight, borderTop + lineHeight * 3.0),
-                        txtSize,
-                        textStyle,
-                        textAnchorLeft = true
-                    ),
-                    svgBasic.text(
-                        "This is a normal text",
-                        Point(borderLeft, borderTop + lineHeight * 4.0),
-                        txtSize,
-                        textStyle
-                    ),
-                    svgBasic.line(
-                        Point(borderLeft, borderTop + lineHeight * 5.0),
-                        Point(pageSize.widthMm - borderRight, borderTop + lineHeight * 5.0),
-                        strokeWidth = strokeWidth,
-                        color = "blue",
-                        opacity = objOpacity
-                    ),
-                    svgBasic.line(
-                        Point(borderLeft, borderTop + lineHeight * 6.0),
-                        Point(pageSize.widthMm - borderRight, borderTop + lineHeight * 6.0),
-                        strokeWidth = strokeWidth,
-                        color = "blue",
-                        opacity = objOpacity
-                    ),
-                    svgBasic.circle(
-                        center = Point(borderLeft + horObjDist * 1.0, borderTop + lineHeight * 6.0),
-                        radius = lineHeight * 1.0,
-                        color = "orange",
-                        opacity = objOpacity
-                    ),
-                    svgBasic.circle(
-                        center = Point(borderLeft + horObjDist * 3.0, borderTop + lineHeight * 6.0),
-                        radius = lineHeight * 1.0,
-                        color = "orange",
-                        opacity = objOpacity
-                    ),
-                    svgBasic.circle(
-                        center = Point(borderLeft + horObjDist * 4.0, borderTop + lineHeight * 6.0),
-                        radius = lineHeight * 0.5,
-                        color = "green",
-                        opacity = objOpacity
-                    ),
-                )
-            }
-
-            println("create test svg. catalogue: $catalogue")
-            val formatStr = "$pageSize-${fontFam.name}"
-            val nam = "t2-$formatStr"
-            val outDir = Util.outDir(output)
-            if (Files.notExists(outDir)) Files.createDirectories(outDir)
-
-            val outFile = outDir.resolve("$nam.svg")
-            svgBasic.writeSvg(outFile, pageSize, fontFamily = fontFam, ::testElems)
-            //Util.renderSvg("chromium", nam, outDir, ps)
+        fun testElems(): List<Element> {
+            return listOf(
+                svgBasic.rect(Point(0, 0), pageSize.widthMm, pageSize.heightMm, "white", 1.0),
+                svgBasic.text(
+                    "Test Title",
+                    Point(borderLeft, borderTop + lineHeight * 1.0),
+                    txtSizeTitle,
+                    textStyle
+                ),
+                svgBasic.text(
+                    "Test Title right",
+                    Point(pageSize.widthMm - borderRight, borderTop + lineHeight * 2.0),
+                    txtSizeTitle,
+                    textStyle,
+                    textAnchorLeft = true
+                ),
+                svgBasic.text(
+                    "This is a normal text",
+                    Point(pageSize.widthMm - borderRight, borderTop + lineHeight * 3.0),
+                    txtSize,
+                    textStyle,
+                    textAnchorLeft = true
+                ),
+                svgBasic.text(
+                    "This is a normal text",
+                    Point(borderLeft, borderTop + lineHeight * 4.0),
+                    txtSize,
+                    textStyle
+                ),
+                svgBasic.line(
+                    Point(borderLeft, borderTop + lineHeight * 5.0),
+                    Point(pageSize.widthMm - borderRight, borderTop + lineHeight * 5.0),
+                    strokeWidth = strokeWidth,
+                    color = "blue",
+                    opacity = objOpacity
+                ),
+                svgBasic.line(
+                    Point(borderLeft, borderTop + lineHeight * 6.0),
+                    Point(pageSize.widthMm - borderRight, borderTop + lineHeight * 6.0),
+                    strokeWidth = strokeWidth,
+                    color = "blue",
+                    opacity = objOpacity
+                ),
+                svgBasic.circle(
+                    center = Point(borderLeft + horObjDist * 1.0, borderTop + lineHeight * 6.0),
+                    radius = lineHeight * 1.0,
+                    color = "orange",
+                    opacity = objOpacity
+                ),
+                svgBasic.circle(
+                    center = Point(borderLeft + horObjDist * 3.0, borderTop + lineHeight * 6.0),
+                    radius = lineHeight * 1.0,
+                    color = "orange",
+                    opacity = objOpacity
+                ),
+                svgBasic.circle(
+                    center = Point(borderLeft + horObjDist * 4.0, borderTop + lineHeight * 6.0),
+                    radius = lineHeight * 0.5,
+                    color = "green",
+                    opacity = objOpacity
+                ),
+            )
         }
 
-        val pss = listOf(
-            Util.PageSize.A0,
-            Util.PageSize.A3,
-            Util.PageSize.A4,
-            Util.PageSize.A5
-        )
-        pss.forEach { img(it) }
+        println("create test svg. pageSize: $pageSize catalogue: $catalogue")
+        svgBasic.writeSvg(writer, pageSize, fontFamily = fontFam, ::testElems)
     }
 
 
@@ -392,11 +362,6 @@ object ExopImages {
         val a = period * period * g * m / (PI * PI * 4.0)
         return a.pow(1.0 / 3) / au
     }
-
-
-
-
-
 
 
 }

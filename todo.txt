@@ -4,19 +4,26 @@
 == open milestones
 
 various
+    - merge request for the open exoplanet catalogue
+    - deployment on entelijan
     - include binary systems
     - analyse distance (greatHalfAxis) of catalog. Evl. use instead of period
     - show jupiter and saturn for size comparison
-
-homepage
-    - create reactive project
-    - start server (tomcat) containing frontend
-    - create SVGs on click.
-    - Update catalog on click
-    - Update catalog with cron job
+    - send only json from the server. except the svg
+    - Make help and update output separate components. That are shown and hidden on click.
 
 ----------------------------------------------------------------------------
 ==done milestones
+
+homepage
+    - preview image
+    - Allow selection of image size
+    - favicon
+    - title
+    - make a help field
+    - create reactive project
+    - start server (tomcat) containing frontend
+    - create SVGs on click.
 
 tech02
     - Output dir as cli option
@@ -48,5 +55,5 @@ drawing3
     - do not use 'open exoplanets catalog' as submodule
     - define better cli. e.g. -action as argument
     - Show planets with unknown radius different. e.g. more transparent
-    - enable creation of two images. i01 'Inner Solar System', i02 'Earthlike'
+    - enable creation of two images. i01 'Inner Solar System', i02 'Earth-like'
 

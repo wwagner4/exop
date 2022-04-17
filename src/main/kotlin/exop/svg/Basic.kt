@@ -1,23 +1,21 @@
 package exop.svg
 
-import exop.Font
 import exop.ExopImages
+import exop.Font
 import exop.Util
 import org.jdom2.Document
 import org.jdom2.Element
 import org.jdom2.Namespace
 import org.jdom2.output.Format
 import org.jdom2.output.XMLOutputter
-import java.io.FileWriter
-import java.nio.file.Path
-import kotlin.io.path.absolute
+import java.io.Writer
 
 class Basic(private val unit: String) {
 
     private val svgNamespace = Namespace.getNamespace("http://www.w3.org/2000/svg")
 
     fun writeSvg(
-        outFile: Path, pageSize: Util.PageSize, fontFamily: Font.Family, createElems: () -> List<Element>
+        writer: Writer, pageSize: Util.PageSize, fontFamily: Font.Family, createElems: () -> List<Element>
     ) {
         fun z(element: Element): Int {
             if (element.name == "text") return 10
@@ -43,11 +41,9 @@ class Basic(private val unit: String) {
 
         val document = Document()
         document.setContent(root)
-        val writer = FileWriter(outFile.toFile())
         val outputter = XMLOutputter()
         outputter.format = Format.getPrettyFormat()
         outputter.output(document, writer)
-        println("Wrote file to ${outFile.absolute()}")
     }
 
     fun circle(

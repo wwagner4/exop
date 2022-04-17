@@ -1,0 +1,3 @@
+#!/usr/bin/bash
+export REACT_APP_EXOP_URL=
+npm run build

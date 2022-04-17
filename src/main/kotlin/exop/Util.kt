@@ -4,8 +4,10 @@ import org.jdom2.Element
 import org.jdom2.input.SAXBuilder
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.concurrent.TimeUnit
 import kotlin.io.path.absolute
 import kotlin.io.path.name
+import kotlin.math.floor
 
 object Util {
 
@@ -33,7 +35,6 @@ object Util {
     )
 
 
-
     @Suppress("unused")
     enum class PageSize(private val width: Double, private val height: Double) {
         A0(841.0, 1189.0),
@@ -43,8 +44,8 @@ object Util {
         A4(210.0, 297.0),
         A5(148.0, 210.0);
 
-        val widthMm: Double get() = width
-        val heightMm: Double get() = height
+        val widthMm: Double get() = floor(width * 0.999)
+        val heightMm: Double get() = floor(height * 0.999)
     }
 
     fun outDir(default: String?): Path {
@@ -54,8 +55,7 @@ object Util {
             val target = Path.of("target", "images")
             if (Files.notExists(target)) Files.createDirectories(target)
             return target
-        }
-        else {
+        } else {
             val path = Path.of(default)
             if (Files.notExists(path)) throw IllegalStateException("${path.absolute()} does not exist")
             if (!Files.isDirectory(path)) throw IllegalStateException("${path.absolute()} is not a directory")
@@ -90,30 +90,31 @@ object Util {
 
     private fun catFiles(cliOutDir: String?): List<Path> {
 
-        fun default(): String {
-            val dir = Path.of("..", "open_exoplanet_catalogue")
-            if (Files.notExists(dir)) throw IllegalStateException("Environment variable CATALOGUE must be defined")
-            return dir.absolute().toString()
-        }
-
         fun catFiles(baseDir: Path, catName: String): List<Path> {
             val sysDir = baseDir.resolve(catName)
             return Files.list(sysDir).toList().filter { it.fileName.toString().endsWith("xml") }
         }
 
-        if (cliOutDir.isNullOrBlank()) {
-            val catPath = System.getenv("CATALOGUE") ?: default()
-            val catDir = Path.of(catPath)
-            val catNames = listOf("systems", "systems_kepler")
-            return catNames.flatMap { catFiles(catDir, it) }
-        } else {
-            val catDir = Path.of(cliOutDir)
-            val catNames = listOf("systems", "systems_kepler")
-            return catNames.flatMap { catFiles(catDir, it) }
-        }
+        val catDir = catDir(cliOutDir)
+        val catNames = listOf("systems", "systems_kepler")
+        return catNames.flatMap { catFiles(catDir, it) }
     }
 
+    fun catDir(cliOutDir: String?): Path {
 
+        fun default(): String {
+            val dir = Path.of("..", "open_exoplanet_catalogue")
+            if (Files.notExists(dir)) throw IllegalStateException("${dir.absolute()} must exist or environment variable CATALOGUE must be defined")
+            return dir.absolute().toString()
+        }
+
+        return if (cliOutDir.isNullOrBlank()) {
+            val catPath = System.getenv("CATALOGUE") ?: default()
+            Path.of(catPath)
+        } else {
+            Path.of(cliOutDir)
+        }
+    }
 
     private fun toStar(starElem: Element, systName: String): Star {
         val starMass = toDouble(starElem, "mass")
@@ -155,6 +156,71 @@ object Util {
                 else -> it.text.toDouble()
             }
         }.firstOrNull()
+    }
+
+    fun String.runCommand(workingDir: Path): String? {
+        try {
+            val parts = this.split("\\s".toRegex())
+            val proc = ProcessBuilder(*parts.toTypedArray())
+                .directory(workingDir.toFile())
+                .redirectOutput(ProcessBuilder.Redirect.PIPE)
+                .redirectError(ProcessBuilder.Redirect.PIPE)
+                .start()
+
+            proc.waitFor(5, TimeUnit.SECONDS)
+            return proc.inputStream.bufferedReader().readText()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return null
+        }
+    }
+
+    data class LogOutput(
+        val date: String,
+        val text: String,
+    )
+
+    fun parseGitLogOutput(output: String): List<LogOutput> {
+        fun groups(commit: String): List<String>? {
+            val clean = commit.replace("\n", "<a>")
+            val regex = Regex("<a>Date:(.*)<a><a>(.*)<a><a>?")
+            val match = regex.find(clean)
+            val r1 = match?.groups?.toList()?.map { it?.value ?: "" }
+            if (r1 != null) return r1
+            val regex1 = Regex("<a>Date:(.*)<a><a>(.*)<a>?")
+            val match1 = regex1.find(clean)
+            val r2 = match1?.groups?.toList()?.map { it?.value ?: "" }
+            if (r2 != null) return r2
+            println("could not match '$clean'")
+            return null
+        }
+
+        val commits = output.split("commit").filter { it.length > 0 }
+        val lines = commits.map {
+            val grps = groups(it)
+            if (grps != null) {
+                val date = grps[1].trim().replace("-", "&#8209;")
+                val text = splitLongWords(grps[2].trim())
+                LogOutput(date, text)
+            } else null
+        }.filterNotNull()
+        return lines
+    }
+
+    fun splitLongWords(text: String): String {
+
+        fun splitLong(word: String): String {
+            return word.chunked(30).joinToString("<br/>")
+        }
+        return try {
+            println("splitting '$text'")
+            val splitted = text.split(" ").map { splitLong(it) }.joinToString(" ")
+            println("splitted $text into $splitted")
+            splitted
+        } catch (e: Exception) {
+            println("Error splitting '$text'")
+            text
+        }
     }
 
 
