@@ -21,9 +21,14 @@ object Server {
         val catDir = Util.catDir(catalogue)
         println("Catalogue dir:'${catDir.absolute()}'")
 
-        val baseDir = Path("src", "exop-react", "build")
+        val envName = "EXOP_REACT_DIR"
+        val envVal = System.getenv(envName)
+        val reactDir =
+            if (envVal == null) Path("src", "exop-react", "build")
+            else Path(envVal)
+        println("reactDir: $reactDir")
 
-        embeddedServer(Netty, 8080) {
+        embeddedServer(Netty, port = 8080, host = "0.0.0.0") {
             install(CORS) {
                 method(HttpMethod.Options)
                 method(HttpMethod.Get)
@@ -42,10 +47,11 @@ object Server {
                     val htmlText = try {
                         "git pull".runCommand(catDir)
                         val stdout = "git --no-pager log -n8 --date=short".runCommand(catDir)!!
-                        val rows = Util.parseGitLogOutput(stdout).map{ "<tr><td>${it.date}</td><td>${it.text}</td>"}.joinToString("")
+                        val rows = Util.parseGitLogOutput(stdout).map { "<tr><td>${it.date}</td><td>${it.text}</td>" }
+                            .joinToString("")
                         val table = "<table><tbody>$rows</tbody></table>"
                         "update was successful. if you create now a poster you will use the latest known exoplanet data.<br><br>$table"
-                    } catch (e: Exception){
+                    } catch (e: Exception) {
                         "Error on catalogue update ${e.message}"
                     }
                     call.respondText(htmlText, contentType = ContentType.Text.Html)
@@ -60,14 +66,15 @@ object Server {
                     call.respondText(content, contentType = ContentType.Image.SVG)
                 }
                 get("/react") {
-                    val file = baseDir.resolve("index.html")
-                    log.info("file:${file.absolute()}")
-                    if (Files.notExists(file)) throw IllegalStateException("Could not fine path: ${file.absolute()}")
+                    log.info("reactDir:${reactDir.absolute()}")
+                    val file = reactDir.resolve("index.html")
+                    log.info("/react file:${file.absolute()}")
+                    if (Files.notExists(file)) throw IllegalStateException("/react Could not fine path: ${file.absolute()}")
                     call.respondFile(file.toFile())
                 }
                 get("/{path0}") {
                     val path = call.parameters["path0"]
-                    val file = baseDir.resolve(path!!)
+                    val file = reactDir.resolve(path!!)
                     log.info("file: ${file.absolute()}")
                     call.respondFile(file.toFile())
                 }
@@ -75,7 +82,7 @@ object Server {
                     val path0 = call.parameters["path0"]
                     val path1 = call.parameters["path1"]
                     val rel = Path(path1!!, path0!!)
-                    val file = baseDir.resolve(rel)
+                    val file = reactDir.resolve(rel)
                     log.info("file: ${file.absolute()}")
                     call.respondFile(file.toFile())
                 }
@@ -84,7 +91,7 @@ object Server {
                     val path1 = call.parameters["path1"]
                     val path2 = call.parameters["path2"]
                     val rel = Path(path2!!, path1!!, path0!!)
-                    val file = baseDir.resolve(rel)
+                    val file = reactDir.resolve(rel)
                     log.info("file: ${file.absolute()}")
                     call.respondFile(file.toFile())
                 }
