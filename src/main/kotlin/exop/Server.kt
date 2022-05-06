@@ -10,6 +10,7 @@ import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import java.io.StringWriter
 import java.nio.file.Files
+import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.absolute
 
@@ -21,12 +22,7 @@ object Server {
         val catDir = Util.catDir(catalogue)
         println("Catalogue dir:'${catDir.absolute()}'")
 
-        val envName = "EXOP_REACT_DIR"
-        val envVal = System.getenv(envName)
-        val reactDir =
-            if (envVal == null) Path("src", "exop-react", "build")
-            else Path(envVal)
-        println("reactDir: $reactDir")
+        val reactBuildDir by lazy { reactBuildDir() }
 
         embeddedServer(Netty, port = 8080, host = "0.0.0.0") {
             install(CORS) {
@@ -66,15 +62,14 @@ object Server {
                     call.respondText(content, contentType = ContentType.Image.SVG)
                 }
                 get("/react") {
-                    log.info("reactDir:${reactDir.absolute()}")
-                    val file = reactDir.resolve("index.html")
-                    log.info("/react file:${file.absolute()}")
-                    if (Files.notExists(file)) throw IllegalStateException("/react Could not fine path: ${file.absolute()}")
+                    val file = reactBuildDir.resolve("index.html")
+                    log.info("file:${file.absolute()}")
+                    if (Files.notExists(file)) throw IllegalStateException("Could not fine path: ${file.absolute()}")
                     call.respondFile(file.toFile())
                 }
                 get("/{path0}") {
                     val path = call.parameters["path0"]
-                    val file = reactDir.resolve(path!!)
+                    val file = reactBuildDir.resolve(path!!)
                     log.info("file: ${file.absolute()}")
                     call.respondFile(file.toFile())
                 }
@@ -82,7 +77,7 @@ object Server {
                     val path0 = call.parameters["path0"]
                     val path1 = call.parameters["path1"]
                     val rel = Path(path1!!, path0!!)
-                    val file = reactDir.resolve(rel)
+                    val file = reactBuildDir.resolve(rel)
                     log.info("file: ${file.absolute()}")
                     call.respondFile(file.toFile())
                 }
@@ -91,13 +86,33 @@ object Server {
                     val path1 = call.parameters["path1"]
                     val path2 = call.parameters["path2"]
                     val rel = Path(path2!!, path1!!, path0!!)
-                    val file = reactDir.resolve(rel)
+                    val file = reactBuildDir.resolve(rel)
                     log.info("file: ${file.absolute()}")
                     call.respondFile(file.toFile())
                 }
             }
         }.start(wait = true)
 
+    }
+
+    private fun reactBuildDir(): Path {
+        println("Determine react build dir")
+        val reactDefaultBuildDir = Path("src", "exop-react", "build")
+        val result =  if (Files.notExists(reactDefaultBuildDir)) {
+            val envVarName = "REACT_BUILD_DIR"
+            val envReactBuildName = System.getenv(envVarName)
+            val noDefaultMsg = "React build dir not found. Default '${reactDefaultBuildDir.absolute()}' does not exist "
+            if (envReactBuildName == null) throw IllegalStateException(
+                noDefaultMsg + "and environment variable '$envVarName' is not defined"
+            )
+            val envReactBuildDir = Path(envReactBuildName)
+            if (Files.notExists(envReactBuildDir)) throw IllegalStateException(
+                noDefaultMsg + "and path defined by '$envVarName' ('$envReactBuildDir') does not exist"
+            )
+            envReactBuildDir
+        } else reactDefaultBuildDir
+        println("Determined react build dir. '${result.absolute()}'")
+        return result
     }
 
 }

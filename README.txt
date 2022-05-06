@@ -42,5 +42,5 @@ podman run -v <OUT_DIR>:/out exop i01
 podman run -v /home/wwagner4/work/exop-out:/out exop i01
 podman run -v $(pwd):/out exop i01
 podman run -v $(pwd):/out exop --help
-podman run -v $(pwd):/out -p 8080:8080 exop server
 
+podman run -p 8000:8080 -t exop exop/bin/exop server

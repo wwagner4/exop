@@ -1,9 +1,12 @@
-FROM openjdk:17-bullseye
+FROM docker.io/library/openjdk:17-bullseye
 
 RUN apt-get update
 RUN apt-get install -y npm
 
 RUN mkdir /app
+
+RUN apt update
+RUN apt install -y npm
 
 WORKDIR /exop
 COPY build.gradle.kts .
@@ -18,6 +21,7 @@ RUN tar -xf build/distributions/exop-1.0.tar
 RUN mv exop-1.0 /app/exop/
 
 WORKDIR /exop/src/exop-react
+
 RUN npm install
 RUN bash run_build
 
