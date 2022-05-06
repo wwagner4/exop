@@ -24,7 +24,7 @@ object Server {
 
         val reactBuildDir by lazy { reactBuildDir() }
 
-        embeddedServer(Netty, 8080) {
+        embeddedServer(Netty, port = 8080, host = "0.0.0.0") {
             install(CORS) {
                 method(HttpMethod.Options)
                 method(HttpMethod.Get)

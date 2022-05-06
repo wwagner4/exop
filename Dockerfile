@@ -1,8 +1,9 @@
 FROM docker.io/library/openjdk:17-bullseye
 
-RUN mkdir /build
+RUN apt-get update
+RUN apt-get install -y npm
+
 RUN mkdir /app
-RUN mkdir /out
 
 RUN apt update
 RUN apt install -y npm
@@ -20,10 +21,16 @@ RUN tar -xf build/distributions/exop-1.0.tar
 RUN mv exop-1.0 /app/exop/
 
 WORKDIR /exop/src/exop-react
+
+RUN npm install
 RUN bash run_build
-RUN mv build /app/react/
+
+WORKDIR /react
+RUN cp -r /exop/src/exop-react/build/* .
+ENV EXOP_REACT_DIR=/react
 
 WORKDIR /app
 RUN git clone https://github.com/OpenExoplanetCatalogue/open_exoplanet_catalogue.git
-ENV CATALOGUE=/app/open_exoplanet_catalogue
-ENV REACT_BUILD_DIR=/app/react
+ENV CATALOGUE=open_exoplanet_catalogue
+
+ENTRYPOINT ["exop/bin/exop", "server"]
