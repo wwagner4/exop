@@ -52,26 +52,28 @@ object Names {
             "WISE",
         )
 
-    private fun noCatalog(name: String): Boolean {
-        return catalogPrefixes.none { name.startsWith(it) }
-    }
-
-
-    fun starName(names: List<String>): String {
-        if (names.size == 1) return names[0]
-        val noCatNames = names.filter { noCatalog(it) }
-        return if (noCatNames.isEmpty()) names[0]
-        else noCatNames[0]
-    }
-
-    fun planetName(names: List<String>, systName: String): String {
-        val nam = names.first()
-        if (nam.startsWith(systName)) {
-            val shortNam = nam.substring(systName.length).trim()
-            if (shortNam.length <= 1) return ""
-            return shortNam
+    fun starName(star: Util.Star, systemName: String): String? {
+        fun name(): String {
+            val names = star.names
+            if (names.size == 1) return names[0]
+            val noCatNames = names.filter { catalogPrefixes.none { it.startsWith(it) } }
+            return if (noCatNames.isEmpty()) names[0]
+            else noCatNames[0]
         }
-        return nam
+
+        val n = name()
+        return if (n == systemName) null
+        else n
+    }
+
+    fun planetName(planet: Util.Planet, systemName: String): String? {
+        val firstName = planet.names.first()
+        if (firstName.startsWith(systemName)) {
+            val shortName = firstName.substring(systemName.length).trim()
+            if (shortName.length <= 1) return null
+            return shortName
+        }
+        return firstName
     }
 
 }

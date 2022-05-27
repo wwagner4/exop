@@ -1,49 +1,50 @@
 package exop.svg
 
-import exop.ExopImages
 import org.jdom2.Element
 
 class ExopElems(private val svgBasic: Basic) {
 
-    fun planet(center: ExopImages.Point, radius: Double): Element {
+    fun planet(center: Basic.SvgPoint, radius: Double): Element {
         return svgBasic.circle(center, radius, "green", 0.8)
     }
 
-    fun planetUnknownRadius(center: ExopImages.Point, radius: Double): Element {
+    fun planetUnknownRadius(center: Basic.SvgPoint, radius: Double): Element {
         return svgBasic.circle(center, radius, "green", 0.4)
     }
 
-    fun solarPlanet(center: ExopImages.Point, radius: Double): Element {
+    fun solarPlanet(center: Basic.SvgPoint, radius: Double): Element {
         return svgBasic.circle(center, radius, "red", 0.9)
     }
 
-    fun star(center: ExopImages.Point, radius: Double): Element {
+    fun star(center: Basic.SvgPoint, radius: Double): Element {
         return svgBasic.circle(center, radius, "orange", 0.8)
     }
 
-    fun sun(center: ExopImages.Point, radius: Double): Element {
+    fun sun(center: Basic.SvgPoint, radius: Double): Element {
         return svgBasic.circle(center, radius, "red", 0.9)
     }
 
-    fun planetLine(from: ExopImages.Point, to: ExopImages.Point, strokeWith: Double): Element {
+    fun planetLine(from: Basic.SvgPoint, to: Basic.SvgPoint, strokeWith: Double): Element {
         return svgBasic.line(from, to, strokeWith, "green")
     }
 
     fun nameSystem(
-        origin: ExopImages.Point,
-        text: String,
+        origin: Basic.SvgPoint,
+        text: String?,
         size: Double,
         offset: Double,
-        textStyle: ExopImages.TextStyle,
+        textStyle: Basic.TextStyle,
         anchorLeft: Boolean = true
-    ): Element {
+    ): Element? {
         val xOff = if (anchorLeft) -offset else offset
-        val origin1 = ExopImages.Point(
+        val origin1 = Basic.SvgPoint(
             origin.x.toDouble() + xOff, origin.y.toDouble() - offset
         )
-        return svgBasic.text(
-            text, origin1, size, textStyle, anchorLeft
-        )
+        return text?.let {
+            svgBasic.text(
+                text, origin1, size, textStyle, anchorLeft
+            )
+        }
     }
 
     fun legendElems(
@@ -52,12 +53,12 @@ class ExopElems(private val svgBasic: Basic) {
         imgOffsetX: Double,
         imgOffsetY: Double,
         imgSize: Double,
-        textStyle: ExopImages.TextStyle,
+        textStyle: Basic.TextStyle,
         textSize: Double,
         textAnchorLeft: Boolean = true
     ): List<Element> {
         data class LegendElem(
-            val text: String, val fElem: (ExopImages.Point, Double) -> Element
+            val text: String, val fElem: (Basic.SvgPoint, Double) -> Element
         )
 
         val vDist = textSize * 1.5
@@ -66,8 +67,8 @@ class ExopElems(private val svgBasic: Basic) {
             val x = if (textAnchorLeft) xBase.toDouble() + imgOffsetX
             else xBase.toDouble() - imgOffsetX
             val y = yBase.toDouble() + i * vDist
-            val txtOrigin = ExopImages.Point(xBase, y)
-            val imgOrigin = ExopImages.Point(x, y + imgOffsetY)
+            val txtOrigin = Basic.SvgPoint(xBase, y)
+            val imgOrigin = Basic.SvgPoint(x, y + imgOffsetY)
             return listOf(
                 elem.fElem(imgOrigin, imgSize),
                 svgBasic.text(
@@ -93,7 +94,7 @@ class ExopElems(private val svgBasic: Basic) {
         lines: List<String>,
         xBase: Number,
         yBase: Number,
-        textStyle: ExopImages.TextStyle,
+        textStyle: Basic.TextStyle,
         textSize: Double,
         textAnchorLeft: Boolean = true
     ): List<Element> {
@@ -102,7 +103,7 @@ class ExopElems(private val svgBasic: Basic) {
 
         fun line(line: String, i: Int): List<Element> {
             val y = yBase.toDouble() + i * vDist
-            val txtOrigin = ExopImages.Point(xBase, y)
+            val txtOrigin = Basic.SvgPoint(xBase, y)
             return listOf(
                 svgBasic.text(
                     line,

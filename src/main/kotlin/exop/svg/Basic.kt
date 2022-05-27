@@ -1,6 +1,5 @@
 package exop.svg
 
-import exop.ExopImages
 import exop.Font
 import exop.Util
 import org.jdom2.Document
@@ -13,6 +12,14 @@ import java.io.Writer
 class Basic(private val unit: String) {
 
     private val svgNamespace = Namespace.getNamespace("http://www.w3.org/2000/svg")
+
+    data class SvgPoint(val x: Number, val y: Number)
+
+    data class TextStyle(
+        val color: String,
+        val opacity: Double,
+        val fontFamily: Font.Family,
+    )
 
     fun writeSvg(
         writer: Writer, pageSize: Util.PageSize, fontFamily: Font.Family, createElems: () -> List<Element>
@@ -34,8 +41,8 @@ class Basic(private val unit: String) {
 
         val root = svgElem("svg")
         // root.setAttribute("viewBox", "0 0 ${pageSize.widthMm} ${pageSize.heightMm}")
-        root.setAttribute("width", pageSize.widthMm.f(unit))
-        root.setAttribute("height", pageSize.heightMm.f(unit))
+        root.setAttribute("width", pageSize.width.f(unit))
+        root.setAttribute("height", pageSize.height.f(unit))
         addStyle(root)
         createElems().sortedBy { z(it) }.forEach { root.addContent(it) }
 
@@ -47,7 +54,7 @@ class Basic(private val unit: String) {
     }
 
     fun circle(
-        center: ExopImages.Point, radius: Double, color: String, opacity: Double
+        center: SvgPoint, radius: Double, color: String, opacity: Double
     ): Element {
         val elem = svgElem("circle")
         elem.setAttribute("cx", center.x.f(unit))
@@ -59,7 +66,7 @@ class Basic(private val unit: String) {
     }
 
     fun line(
-        from: ExopImages.Point, to: ExopImages.Point, strokeWidth: Double, color: String, opacity: Double = 0.8
+        from: SvgPoint, to: SvgPoint, strokeWidth: Double, color: String, opacity: Double = 0.8
     ): Element {
         val elem = svgElem("line")
         elem.setAttribute("x1", from.x.f(unit))
@@ -72,7 +79,7 @@ class Basic(private val unit: String) {
     }
 
     fun rect(
-        origin: ExopImages.Point,
+        origin: SvgPoint,
         width: Double,
         height: Double,
         color: String,
@@ -90,9 +97,9 @@ class Basic(private val unit: String) {
 
     fun text(
         text: String,
-        origin: ExopImages.Point,
+        origin: SvgPoint,
         size: Double,
-        textStyle: ExopImages.TextStyle,
+        textStyle: TextStyle,
         textAnchorLeft: Boolean = false
     ): Element {
         val elem = svgElem("text")

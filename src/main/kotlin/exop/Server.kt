@@ -54,10 +54,10 @@ object Server {
                 }
                 get("/image") {
                     val size: String = call.request.queryParameters["size"] ?: "A4"
-                    val ps = Util.PageSize.valueOf(size)
+                    val ps = Util.PageSizeIso.valueOf(size)
                     println("get $size image size: $ps")
                     val sw = StringWriter()
-                    ExopImages.i01(sw, ps, null)
+                    ExopImagesSvg.i01(sw, ps, null)
                     val content = sw.buffer.toString()
                     call.respondText(content, contentType = ContentType.Image.SVG)
                 }

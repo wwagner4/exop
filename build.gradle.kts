@@ -32,3 +32,9 @@ tasks.withType<KotlinCompile> {
 application {
     mainClass.set("exop.MainKt")
 }
+
+tasks.withType<Test> {
+    this.testLogging {
+        this.showStandardStreams = true
+    }
+}

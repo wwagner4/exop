@@ -1,50 +1,138 @@
 package exop
 
-import exop.Util.loadSolarSystem
-import exop.svg.Basic
-import exop.svg.ExopElems
-import org.jdom2.Element
+import exop.Names.planetName
+import exop.Names.starName
+import exop.ielems.*
 import java.io.Writer
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import kotlin.math.PI
 import kotlin.math.abs
-import kotlin.math.min
-import kotlin.math.pow
-
-object ExopImages {
-
-    private const val au = 149597870e3 // m
-    private const val earthDist = 1.0 // au
-
-    data class Point(val x: Number, val y: Number)
-
-    private data class SystemStatistic(
-        val size: Double, // max planet distance
-        val maxStarRadius: Double,
-        val maxPlanetRadius: Double,
-    )
-
-    data class TextStyle(
-        val color: String,
-        val opacity: Double,
-        val fontFamily: Font.Family,
-    )
 
 
-    fun i01(writer: Writer, pageSize: Util.PageSize, catalogue: String?) {
+object Img02 {
 
-        val title = "Earth-like Distance"
-        println("creating image '${title}'")
-        val numberOfSystems = 100
+    fun create(writer: Writer, pageSize: Util.PageSize, catalogue: String?) {
 
-        fun getFilteredSystems(): List<Util.SolarSystem> {
+        val maxPlanetDist = 5.0
+        val lineSpacing = 0.02
+        val textOffsetValue = 0.001
+
+        fun selectSystems(): List<Util.SolarSystem> {
+            data class SizeSystem(
+                val size: Double, val system: Util.SolarSystem
+            )
+
+            fun numberOfPlanetsWithKnownRadius(solarSystem: Util.SolarSystem): Int {
+                return solarSystem.star.planets.mapNotNull { it.radius }.size
+            }
+
+            fun sizeSystem(solarSystem: Util.SolarSystem): SizeSystem? {
+                val size = solarSystem.star.planets.mapNotNull { it.dist }.sorted()
+                if (size.isEmpty()) return null
+                return SizeSystem(size.last(), solarSystem)
+            }
+
+            val systems = Util.loadCatalog(catalogue).asSequence().mapNotNull { sizeSystem(it) }
+                .filter { it.size <= maxPlanetDist && numberOfPlanetsWithKnownRadius(it.system) >= 1 }
+                .sortedBy { -it.size }.take(100).map { it.system }.toList()
+            val sol = Util.loadSolarSystem(catalogue)
+            return (listOf(sol) + systems).reversed()
+        }
+
+        fun createImage(solarSystems: List<Util.SolarSystem>): IImage {
+
+            fun infoElements(): List<IElement> {
+
+                val legendDescs = listOf(
+                    ImgCommons.LegendDesc("Sun and planets of the solar system", IColor.RED, IOpacity.MEDIUM),
+                    ImgCommons.LegendDesc("Star, size relative to the sun", IColor.ORANGE, IOpacity.MEDIUM),
+                    ImgCommons.LegendDesc("Exoplanet, size relative to solar planets", IColor.GREEN, IOpacity.MEDIUM),
+                    ImgCommons.LegendDesc("Exoplanet, unknown size", IColor.GREEN, IOpacity.LOW),
+                )
+                val description = listOf(
+                    "Planetary systems containing at",
+                    "least one planet with known size.",
+                )
+                val base = 0.04
+
+                return listOf(
+                    IUtil.baseText(
+                        IUtil.point(1, base), "Known Planetary Systems", ITextSize.L, ITextAnchor.END
+                    ),
+                    IUtil.baseText(
+                        IUtil.point(1, base + 0.045),
+                        "Planet sizes. Creation date: ${ImgCommons.datStr()}",
+                        ITextSize.M,
+                        ITextAnchor.END
+                    ),
+                    IUtil.multilineText(IUtil.point(1, base + 0.105), description, lineSpacing),
+                    ImgCommons.legend(legendDescs, IUtil.point(1, base + 0.26), lineSpacing),
+                )
+            }
+
+
+            val imageElements = listOf(
+                IUtil.fillRect(
+                    IColor.WHITE,
+                    IOpacity.FULL
+                )
+            ) + infoElements() + IUtil.equallyDistributedElements(solarSystems) {
+                ImgCommons.systemElements(
+                    it,
+                    maxPlanetDist,
+                    textOffsetValue
+                )
+            }
+
+            return object : IImage {
+                override val page: IPage
+                    get() {
+                        return IUtil.page(
+                            IUtil.borderCanvas(
+                                imageElements, 0.05, 0.1, 0.05, 0.07
+                            ), pageSize
+                        )
+                    }
+                override val textStyle: ITextStyle
+                    get() = object : ITextStyle {
+                        override val fontFamily: IFont
+                            get() = IFont.TURRET
+                        override val fontScale: IFontScale
+                            get() = { size ->
+                                when (size) {
+                                    ITextSize.L -> 0.035
+                                    ITextSize.M -> 0.0125
+                                    ITextSize.S -> 0.005
+                                }
+                            }
+                    }
+            }
+        }
+
+        val systems = selectSystems()
+        val image = createImage(systems)
+        SvgRenderer.writeSvg(writer, image)
+    }
+}
+
+object Img01 {
+
+    fun create(writer: Writer, pageSize: Util.PageSize, catalogue: String?) {
+
+        val maxPlanetDist = 2.0
+        val lineSpacing = 0.02
+        val textOffsetValue = 0.001
+
+        fun selectSystems(): List<Util.SolarSystem> {
+
+            val numberOfSystems = 100
+
             data class Syst(
                 val minEarthDist: Double,
                 val solarSystem: Util.SolarSystem,
             )
 
-            val sol = loadSolarSystem(catalogue)
+            val sol = Util.loadSolarSystem(catalogue)
 
 
             fun minEarthDist(solarSystem: Util.SolarSystem): Syst? {
@@ -53,7 +141,7 @@ object ExopImages {
                     val distAbs: Double,
                 )
 
-                val earthDists = solarSystem.star.planets.mapNotNull { it.dist }.map { it - earthDist }
+                val earthDists = solarSystem.star.planets.mapNotNull { it.dist }.map { it - Util.earthDist }
                 if (earthDists.isEmpty()) return null
                 val minDist: Dist? = earthDists.map { Dist(it, abs(it)) }.minByOrNull { it.distAbs }
                 return Syst(minDist!!.dist, solarSystem)
@@ -68,300 +156,346 @@ object ExopImages {
             return smaller.take(n).reversed() + listOf(sol) + greater.take(n)
         }
 
-        val solarSystems = getFilteredSystems()
+        fun createImage(solarSystems: List<Util.SolarSystem>): IImage {
 
-        val unit = "mm"
-        val svgBasic = Basic(unit)
-        val svgExop = ExopElems(svgBasic)
+            fun infoElements(): List<IElement> {
 
-        val planetSizeFactor = 1.7
-        val starSizeFactor = 1.7
+                val legendDescs = listOf(
+                    ImgCommons.LegendDesc("Sun and planets of the solar system", IColor.RED, IOpacity.MEDIUM),
+                    ImgCommons.LegendDesc("Star, size relative to the sun", IColor.ORANGE, IOpacity.MEDIUM),
+                    ImgCommons.LegendDesc("Exoplanet, size relative to solar planets", IColor.GREEN, IOpacity.MEDIUM),
+                    ImgCommons.LegendDesc("Exoplanet, unknown size", IColor.GREEN, IOpacity.LOW),
+                )
+                val description = listOf(
+                    "Planetary systems containing one planet that has about",
+                    "the same distance to its star as the earth to the sun.",
+                )
+                val base = 0.04
 
-        val txtSize = 0.008 * pageSize.heightMm
-        val maxSystemDist1 = 1.7
+                return listOf(
+                    IUtil.baseText(
+                        IUtil.point(1, base), "Known Planetary Systems", ITextSize.L, ITextAnchor.END
+                    ),
+                    IUtil.baseText(
+                        IUtil.point(1, base + 0.045),
+                        "Earth-like Distance. Creation date: ${ImgCommons.datStr()}",
+                        ITextSize.M,
+                        ITextAnchor.END
+                    ),
+                    IUtil.multilineText(IUtil.point(1, base + 0.105), description, lineSpacing),
+                    ImgCommons.legend(legendDescs, IUtil.point(1, base + 0.26), lineSpacing),
+                )
+            }
 
-        val titleTxtSize = txtSize * 3.2
 
-        val titleY = titleTxtSize * 2.0
-        val subTitleY = titleY + txtSize * 2.0
-        val explainY = subTitleY + txtSize * 4.0
-        val legendY = explainY + 5.5 * txtSize
+            val imageElements = listOf(
+                IUtil.fillRect(
+                    IColor.WHITE,
+                    IOpacity.FULL
+                )
+            ) + infoElements() + IUtil.equallyDistributedElements(solarSystems) {
+                ImgCommons.systemElements(
+                    it,
+                    maxPlanetDist,
+                    textOffsetValue
+                )
+            }
 
-        val textStyle = TextStyle(
-            color = "blue", opacity = 0.8, fontFamily = Font.Family.turretRoad
-        )
-
-        val borderLeft = 0.08 * pageSize.widthMm
-        val borderRight = 0.07 * pageSize.widthMm
-        val borderTop = 0.08 * pageSize.heightMm
-        val borderBottom = 0.05 * pageSize.heightMm
-
-        val systVertDist = (pageSize.heightMm - borderTop - borderBottom) / (solarSystems.size - 1)
-        val systTxtSize = systVertDist * 0.45
-        val systTxtOffset = systVertDist * 0.15
-
-        val allParams = allSystemParameters(solarSystems)
-
-        fun solSysElems(solarSystem: Util.SolarSystem, index: Int): List<Element> {
-            val isSol = solarSystem.name == "Sun"
-            val systemDist = maxPlanetDist(solarSystem)
-                ?: throw IllegalStateException("solar system with no planet ${solarSystem.name}")
-
-            val paintY = index * systVertDist + borderTop
-
-            val paintSystemDist = (pageSize.widthMm - (borderLeft + borderRight)) * systemDist / maxSystemDist1
-            val paintMaxSystemDist = (pageSize.widthMm - borderRight)
-            val lineElem = svgExop.planetLine(
-                Point(borderLeft, paintY), Point(
-                    min(borderLeft + paintSystemDist, paintMaxSystemDist), paintY
-                ),
-                systVertDist * 0.01
-            )
-
-            val paintRadiusStar =
-                starSizeFactor * systVertDist * (solarSystem.star.radius ?: 1.0) / allParams.maxStarRadius
-            val starElem = if (isSol) svgExop.sun(
-                Point(borderLeft, paintY), paintRadiusStar
-            )
-            else svgExop.star(Point(borderLeft, paintY), paintRadiusStar)
-
-            val systemTxtElem = svgExop.nameSystem(
-                Point(borderLeft, paintY), solarSystem.name,
-                systTxtSize,
-                systTxtOffset,
-                textStyle,
-            )
-            val starName = Names.starName(solarSystem.star.names)
-            val starTxtElem = if (solarSystem.name == starName) null
-            else svgExop.nameSystem(
-                Point(borderLeft, paintY),
-                starName,
-                systTxtSize,
-                systTxtOffset,
-                textStyle,
-                anchorLeft = false,
-            )
-
-            val planetElems = solarSystem.star.planets.flatMap {
-                if (it.dist == null) listOf()
-                else {
-                    val paintDistPlanet = (pageSize.widthMm - (borderLeft + borderRight)) * it.dist / maxSystemDist1
-                    val paintPlanetX = borderLeft + paintDistPlanet
-                    if (paintPlanetX > paintMaxSystemDist) listOf()
-                    else {
-                        val elemPlanetName = svgExop.nameSystem(
-                            Point(paintPlanetX, paintY),
-                            Names.planetName(it.names, it.systName),
-                            systTxtSize,
-                            systTxtOffset,
-                            textStyle,
-                            anchorLeft = false,
+            return object : IImage {
+                override val page: IPage
+                    get() {
+                        return IUtil.page(
+                            IUtil.borderCanvas(
+                                imageElements, 0.05, 0.1, 0.05, 0.07
+                            ), pageSize
                         )
-                        if (isSol) {
-                            val radius = planetSizeFactor * systVertDist * it.radius!! / allParams.maxPlanetRadius
-                            val elemPlanet = svgExop.solarPlanet(
-                                Point(paintPlanetX, paintY), radius
-                            )
-                            listOf(
-                                elemPlanet, elemPlanetName
-                            )
-                        } else {
-                            val elemPlanet = if (it.radius != null) {
-                                val radius = planetSizeFactor * systVertDist * it.radius / allParams.maxPlanetRadius
-                                svgExop.planet(
-                                    Point(paintPlanetX, paintY), radius
-                                )
-                            } else {
-                                svgExop.planetUnknownRadius(
-                                    Point(
-                                        paintPlanetX, paintY
-                                    ), systVertDist * 0.3
-                                )
-                            }
-                            listOf(
-                                elemPlanet, elemPlanetName
-                            )
-                        }
                     }
+                override val textStyle: ITextStyle
+                    get() = object : ITextStyle {
+                        override val fontFamily: IFont
+                            get() = IFont.TURRET
+                        override val fontScale: IFontScale
+                            get() = { size ->
+                                when (size) {
+                                    ITextSize.L -> 0.035
+                                    ITextSize.M -> 0.0125
+                                    ITextSize.S -> 0.005
+                                }
+                            }
+                    }
+            }
+        }
+
+        val systems = selectSystems()
+        val image = createImage(systems)
+        SvgRenderer.writeSvg(writer, image)
+    }
+}
+
+object TestImage {
+
+    @Suppress("UNUSED_PARAMETER")
+    fun create(writer: Writer, pageSize: Util.PageSize, catalogue: String?) {
+
+        fun createImage(): IImage {
+            data class TextStyle(
+                override val fontFamily: IFont,
+                override val fontScale: IFontScale,
+            ) : ITextStyle
+
+            data class Planet(
+                override val origin: IPoint,
+                override val color: IColor? = IColor.GREEN,
+                override val opacity: IOpacity? = IOpacity.MEDIUM,
+                override val radius: Double
+            ) : ICircle
+
+            data class Star(
+                override val origin: IPoint,
+                override val color: IColor? = IColor.ORANGE,
+                override val opacity: IOpacity? = IOpacity.MEDIUM,
+                override val radius: Double
+            ) : ICircle
+
+            data class Rectangle(
+                override val origin: IPoint,
+                override val width: Double,
+                override val height: Double,
+                override val color: IColor? = IColor.YELLOW,
+                override val opacity: IOpacity? = IOpacity.MEDIUM,
+            ) : IRectangle
+
+            data class P(override val x: Double, override val y: Double) : IPoint
+
+            class Text(
+                override val size: ITextSize,
+                override val origin: IPoint,
+                override val text: String,
+                override val textAnchor: ITextAnchor = ITextAnchor.START,
+                override val color: IColor? = IColor.BLUE,
+                override val opacity: IOpacity? = IOpacity.MEDIUM,
+            ) : IText
+
+            data class Image(
+                override val page: IPage,
+                override val textStyle: ITextStyle,
+            ) : IImage
+
+            fun square(origin: IPoint): ICollection {
+
+                val size = 0.1
+
+                fun corner(x: Number, y: Number) = object : ICircle {
+                    override val radius: Double
+                        get() = 0.02
+                    override val color: IColor
+                        get() = IColor.BLACK
+                    override val opacity: IOpacity?
+                        get() = null
+                    override val origin: IPoint
+                        get() = P(x.toDouble() * size, y.toDouble() * size)
+                }
+
+                return object : ICollection {
+                    override val elements: List<IElement>
+                        get() = listOf(
+                            corner(-1, -1), corner(1, -1), corner(1, 1), corner(-1, 1)
+                        )
+                    override val origin: IPoint
+                        get() = origin
                 }
             }
-            return (listOf(lineElem, starElem) + planetElems + listOf(
-                systemTxtElem, starTxtElem
-            )).filterNotNull()
+
+            val elements = listOf(
+                Rectangle(origin = P(0.0, 0.0), width = 1.0, height = 1.0, color = IColor.YELLOW),
+                Text(origin = P(0.3, 0.2), size = ITextSize.L, text = "L start anchor"),
+                Text(origin = P(0.3, 0.24), size = ITextSize.M, text = "A4 M start anchor"),
+                Text(
+                    origin = P(0.3, 0.26), size = ITextSize.S, text = "S end anchor", textAnchor = ITextAnchor.END
+                ),
+                Planet(origin = P(0.5, 0.5), radius = 0.03),
+                Rectangle(origin = P(0.5, 0.7), width = 0.01, height = 0.295, color = IColor.GREEN),
+                Rectangle(origin = P(0.52, 0.7), width = 0.01, height = 0.29, color = IColor.GREEN),
+                square(P(0.5, 0.5)),
+                Star(origin = P(0.5, 0.5), radius = 0.01),
+            )
+
+
+            val content = IUtil.borderCanvas(elements, 0.1, 0.2, 0.3, 0.4)
+            val page = IUtil.page(content, Util.PageSizeIso.A4)
+            val textStyle = TextStyle(fontFamily = IFont.TURRET, fontScale = { size ->
+                when (size) {
+                    ITextSize.L -> 0.035
+                    ITextSize.M -> 0.0125
+                    ITextSize.S -> 0.005
+                }
+            })
+            return Image(page, textStyle)
         }
 
-        val bgElem = svgBasic.rect(
-            Point(0, 0), pageSize.widthMm, pageSize.heightMm, color = "white"
-        )
 
-        fun titleElem(): Element {
-            val theTitle = "Known Planetary Systems"
-            val origin = Point(pageSize.widthMm - borderRight, titleY)
-            return svgBasic.text(
-                theTitle,
-                origin, size = titleTxtSize, textStyle = textStyle, textAnchorLeft = true
+        val i = createImage()
+        SvgRenderer.writeSvg(writer, i)
+    }
+}
+
+
+object ImgCommons {
+
+
+    data class LegendDesc(
+        val text: String,
+        val color: IColor,
+        val opacity: IOpacity,
+    )
+
+    fun legend(legendDescs: List<LegendDesc>, origin: IPoint, lineSpacing: Double): ICollection {
+        fun legendCircle(legendDesc: LegendDesc): IElement {
+            return object : ICircle {
+                override val radius: Double
+                    get() = 0.007
+                override val color: IColor
+                    get() = legendDesc.color
+                override val opacity: IOpacity
+                    get() = legendDesc.opacity
+                override val origin: IPoint
+                    get() = IUtil.point(0.03, -0.006)
+            }
+        }
+
+        fun txtElem(index: Int, legendDesc: LegendDesc): IElement {
+            return object : ICollection {
+                override val elements: List<IElement>
+                    get() = listOf(
+                        IUtil.baseText(IUtil.point(0, 0), legendDesc.text, ITextSize.M, ITextAnchor.END),
+                        legendCircle(legendDesc),
+                    )
+                override val origin: IPoint
+                    get() = IUtil.point(0, index * lineSpacing)
+            }
+        }
+
+
+        return object : ICollection {
+            override val elements: List<IElement>
+                get() = legendDescs.withIndex().map { txtElem(it.index, it.value) }
+            override val origin: IPoint
+                get() = origin
+        }
+    }
+
+    fun systemElements(solarSystem: Util.SolarSystem, maxPlanetDist: Double, textOffsetValue: Double): List<IElement> {
+
+        val textOffset = IUtil.point(textOffsetValue, -textOffsetValue)
+        val textOffsetEnd = IUtil.point(-textOffsetValue, -textOffsetValue)
+
+        fun isSolarSystem(solarSystem: Util.SolarSystem) = solarSystem.star.names.contains("Sun")
+
+        fun systemName(): IElement {
+            return IUtil.baseText(
+                text = solarSystem.name, origin = textOffsetEnd, size = ITextSize.S, textAnchor = ITextAnchor.END
             )
         }
 
-        fun subTitleElem(): Element {
-            val dat = LocalDate.now()
-            val fmt = DateTimeFormatter.ofPattern("MMM YYYY")
-            val datStr = fmt.format(dat)
-            val origin = Point(pageSize.widthMm - borderRight, subTitleY)
-            return svgBasic.text(
-                "$title. Creation date: $datStr",
-                origin, size = txtSize, textStyle = textStyle, textAnchorLeft = true
-            )
+        fun star(): IElement {
+            fun name(): IElement? {
+                val planetName = starName(solarSystem.star, solarSystem.name)
+                return planetName?.let { IUtil.baseText(origin = textOffset, text = it, size = ITextSize.S) }
+            }
+
+            fun circle(): IElement {
+                val starSizeFactor = 0.002
+                val starColor = if (isSolarSystem(solarSystem)) IColor.RED
+                else IColor.ORANGE
+                val (starOpacity, starRadius) = if (solarSystem.star.radius == null) Pair(IOpacity.LOW, starSizeFactor)
+                else {
+                    Pair(IOpacity.MEDIUM, solarSystem.star.radius * starSizeFactor)
+                }
+                return object : ICircle {
+                    override val radius: Double
+                        get() = starRadius
+                    override val color: IColor
+                        get() = starColor
+                    override val opacity: IOpacity
+                        get() = starOpacity
+                    override val origin: IPoint
+                        get() = IUtil.point(0, 0)
+
+                }
+            }
+            return object : ICollection {
+                override val elements: List<IElement>
+                    get() = listOfNotNull(circle(), name())
+                override val origin: IPoint
+                    get() = IUtil.point(0, 0)
+            }
         }
 
-        val imgElems = solarSystems.withIndex().flatMap { (i, sys) -> solSysElems(sys, i) }
-        val titleElem = titleElem()
-        val subTitleElem = subTitleElem()
-        val explainElems = svgExop.multilineText(
-            listOf(
-                "Planetary systems containing one planet that has about",
-                "the same distance to its star as the earth to the sun",
-            ),
-            pageSize.widthMm - borderRight,
-            explainY,
-            textStyle = textStyle,
-            textSize = txtSize,
-            textAnchorLeft = true
-        )
-        val legendElems = svgExop.legendElems(
-            pageSize.widthMm - borderRight,
-            legendY,
-            imgOffsetX = 0.6 * txtSize,
-            imgOffsetY = -0.3 * txtSize,
-            imgSize = txtSize * 0.3,
-            textStyle = textStyle,
-            textSize = txtSize,
-            textAnchorLeft = true,
-        )
+        fun planet(planet: Util.Planet, isSolarPlanet: Boolean, maxPlanetDist: Double): IElement {
+            val planetSizeFactor = 0.01
+            val unknownPlanetSize = 0.25
 
-        svgBasic.writeSvg(
-            writer, pageSize, textStyle.fontFamily,
-        ) { listOf(bgElem) + imgElems + titleElem + subTitleElem + legendElems + explainElems }
-    }
+            val x = (planet.dist ?: 1.0) / maxPlanetDist
+            fun circle(): IElement {
+                val color = if (isSolarPlanet) IColor.RED else IColor.GREEN
+                val radius = (planet.radius ?: unknownPlanetSize) * planetSizeFactor
+                return object : ICircle {
+                    override val radius: Double
+                        get() = radius
+                    override val color: IColor
+                        get() = color
+                    override val opacity: IOpacity
+                        get() = if (planet.radius != null) IOpacity.MEDIUM else IOpacity.LOW
+                    override val origin: IPoint
+                        get() = IUtil.point(0, 0)
+                }
+            }
 
+            fun name(): IElement? {
+                val planetName = planetName(planet, solarSystem.name)
+                return planetName?.let { IUtil.baseText(origin = textOffset, text = planetName, size = ITextSize.S) }
+            }
+            return object : ICollection {
+                override val elements: List<IElement>
+                    get() = listOfNotNull(circle(), name())
+                override val origin: IPoint
+                    get() = IUtil.point(x, 0)
 
-    fun createTest(writer: Writer, pageSize: Util.PageSize, catalogue: String?) {
-
-        val unit = "mm"
-        val svgBasic = Basic(unit)
-
-        val fontFam = Font.Family.serif
-        val textStyle = TextStyle("black", 0.9, fontFam)
-        val objOpacity = 0.5
-
-        val borderLeft = 0.01 * pageSize.widthMm
-        val borderRight = 0.01 * pageSize.widthMm
-        val borderTop = 0.12 * pageSize.heightMm
-        val txtSizeTitle = 0.07 * pageSize.heightMm
-        val txtSize = txtSizeTitle * 0.5
-        val strokeWidth = pageSize.heightMm * 0.00015
-
-        val lineHeight = txtSizeTitle * 1.1
-        val horObjDist = (pageSize.widthMm - (borderLeft + borderRight)) / 10.0
-
-        fun testElems(): List<Element> {
-            return listOf(
-                svgBasic.rect(Point(0, 0), pageSize.widthMm, pageSize.heightMm, "white", 1.0),
-                svgBasic.text(
-                    "Test Title",
-                    Point(borderLeft, borderTop + lineHeight * 1.0),
-                    txtSizeTitle,
-                    textStyle
-                ),
-                svgBasic.text(
-                    "Test Title right",
-                    Point(pageSize.widthMm - borderRight, borderTop + lineHeight * 2.0),
-                    txtSizeTitle,
-                    textStyle,
-                    textAnchorLeft = true
-                ),
-                svgBasic.text(
-                    "This is a normal text",
-                    Point(pageSize.widthMm - borderRight, borderTop + lineHeight * 3.0),
-                    txtSize,
-                    textStyle,
-                    textAnchorLeft = true
-                ),
-                svgBasic.text(
-                    "This is a normal text",
-                    Point(borderLeft, borderTop + lineHeight * 4.0),
-                    txtSize,
-                    textStyle
-                ),
-                svgBasic.line(
-                    Point(borderLeft, borderTop + lineHeight * 5.0),
-                    Point(pageSize.widthMm - borderRight, borderTop + lineHeight * 5.0),
-                    strokeWidth = strokeWidth,
-                    color = "blue",
-                    opacity = objOpacity
-                ),
-                svgBasic.line(
-                    Point(borderLeft, borderTop + lineHeight * 6.0),
-                    Point(pageSize.widthMm - borderRight, borderTop + lineHeight * 6.0),
-                    strokeWidth = strokeWidth,
-                    color = "blue",
-                    opacity = objOpacity
-                ),
-                svgBasic.circle(
-                    center = Point(borderLeft + horObjDist * 1.0, borderTop + lineHeight * 6.0),
-                    radius = lineHeight * 1.0,
-                    color = "orange",
-                    opacity = objOpacity
-                ),
-                svgBasic.circle(
-                    center = Point(borderLeft + horObjDist * 3.0, borderTop + lineHeight * 6.0),
-                    radius = lineHeight * 1.0,
-                    color = "orange",
-                    opacity = objOpacity
-                ),
-                svgBasic.circle(
-                    center = Point(borderLeft + horObjDist * 4.0, borderTop + lineHeight * 6.0),
-                    radius = lineHeight * 0.5,
-                    color = "green",
-                    opacity = objOpacity
-                ),
-            )
+            }
         }
 
-        println("create test svg. pageSize: $pageSize catalogue: $catalogue")
-        svgBasic.writeSvg(writer, pageSize, fontFamily = fontFam, ::testElems)
+        fun line(solarSystem: Util.SolarSystem): IElement {
+
+            val size = solarSystem.star.planets.mapNotNull { it.dist }.maxOf { it } / maxPlanetDist
+            return object : ILineHorizontal {
+                override val length: Double
+                    get() = size
+                override val strokeWidth: Double
+                    get() = 0.02
+                override val color: IColor
+                    get() = IColor.BLUE
+                override val opacity: IOpacity
+                    get() = IOpacity.LOW
+                override val origin: IPoint
+                    get() = IUtil.point(0, 0)
+            }
+        }
+
+        val isSolar = isSolarSystem(solarSystem)
+
+        return listOf(line(solarSystem), star(), systemName()) + solarSystem.star.planets.map {
+            planet(
+                it,
+                isSolar,
+                maxPlanetDist
+            )
+        }
     }
 
 
-    private fun allSystemParameters(solarSystems: List<Util.SolarSystem>): SystemStatistic {
-        val maxSystemDist = solarSystems.flatMap { it.star.planets }.mapNotNull { it.dist }.maxOrNull()
-            ?: throw IllegalStateException("Could not calculate max system distance")
-        val maxStarRadius = solarSystems.mapNotNull { it.star.radius }.maxOrNull()
-            ?: throw IllegalStateException("Could not calculate maxStarRadius")
-        val maxPlanetRadius = solarSystems.flatMap { it.star.planets }.mapNotNull { it.radius }.maxOrNull()
-            ?: throw IllegalStateException("Could not calculate maximum planet radius")
-        return SystemStatistic(maxSystemDist, maxStarRadius, maxPlanetRadius)
+    fun datStr(): String {
+        val dat = LocalDate.now()
+        val fmt = DateTimeFormatter.ofPattern("MMM YYYY")
+        return fmt.format(dat)
     }
-
-    private fun maxPlanetDist(solarSystem: Util.SolarSystem): Double? {
-        return solarSystem.star.planets.mapNotNull { it.dist }.maxOrNull()
-    }
-
-
-    /**
-     * Calculates the large semi axis of a planet
-     *
-     * @param period in seconds
-     * @param mass1 in kg
-     * @param mass2 in kg
-     * @return large semi axis (distance) in au (astronomic units)
-     */
-    fun largeSemiAxis(period: Double, mass1: Double, mass2: Double): Double {
-        val g = 6.667408e-11
-        val m = mass1 + mass2
-        val a = period * period * g * m / (PI * PI * 4.0)
-        return a.pow(1.0 / 3) / au
-    }
-
-
 }

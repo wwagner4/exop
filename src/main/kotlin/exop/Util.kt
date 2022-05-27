@@ -4,15 +4,20 @@ import org.jdom2.Element
 import org.jdom2.input.SAXBuilder
 import java.nio.file.Files
 import java.nio.file.Path
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.concurrent.TimeUnit
 import kotlin.io.path.absolute
 import kotlin.io.path.name
-import kotlin.math.floor
+import kotlin.math.PI
+import kotlin.math.pow
 
 object Util {
 
-    private const val massSun: Double = 1.989e30 // kg
-    private const val secondsInDay = 24.0 * 60 * 60
+    const val massSun: Double = 1.989e30 // kg
+    const val secondsInDay = 24.0 * 60 * 60
+    const val au = 149597870e3 // m
+    const val earthDist = 1.0 // au
 
     data class Planet(
         val names: List<String>,
@@ -26,7 +31,8 @@ object Util {
         val names: List<String>,
         val radius: Double?, // in radius sun. radius sun = 696342km
         val mass: Double?, // in solar masses
-        val planets: List<Planet>
+        val planets: List<Planet>,
+        val binaryStarSeparation: Double? = null, // in au (astronomical units)
     )
 
     data class SolarSystem(
@@ -34,18 +40,20 @@ object Util {
         val star: Star,
     )
 
+    interface PageSize {
+        val width: Double
+        val height: Double
+        val name: String
+    }
 
     @Suppress("unused")
-    enum class PageSize(private val width: Double, private val height: Double) {
+    enum class PageSizeIso(override val width: Double, override val height: Double) : PageSize {
         A0(841.0, 1189.0),
         A1(594.0, 841.0),
         A2(420.0, 594.0),
         A3(297.0, 420.0),
         A4(210.0, 297.0),
         A5(148.0, 210.0);
-
-        val widthMm: Double get() = floor(width * 0.999)
-        val heightMm: Double get() = floor(height * 0.999)
     }
 
     fun outDir(default: String?): Path {
@@ -63,41 +71,78 @@ object Util {
         }
     }
 
-    private fun readSystem(file: Path): SolarSystem? {
+    private fun readSystem(file: Path): List<SolarSystem> {
         val systName = file.fileName.toString().substringBefore(".")
         val db = SAXBuilder()
         val doc = db.build(file.toFile())
         val solSys = doc.rootElement
-        val stars = solSys.children.filter { it.name == "star" }.map { toStar(it, systName) }
-        val star = when {
-            stars.isEmpty() -> null
-            stars.size == 1 && stars[0].planets.isNotEmpty() -> stars[0]
-            stars.size == 1 -> null
-            else -> throw IllegalStateException("System $systName has more than one sun")
+        return parseElement(solSys, systName)
+    }
+
+
+    private fun parseElement(
+        element: Element,
+        systemName: String,
+        binaryStarSeparation: Double? = null
+    ): List<SolarSystem> {
+        return when (element.name) {
+            "star" -> listOf(
+                SolarSystem(
+                    systemName,
+                    toStar(element, systemName, binaryStarSeparation = binaryStarSeparation)
+                )
+            )
+            "system" -> element.children.flatMap { parseElement(it, systemName) }
+            "binary" -> element.children.flatMap {
+                parseElement(
+                    it,
+                    systemName,
+                    binaryStarSeparation = separation(element)
+                )
+            }
+            else -> emptyList()
         }
-        return star?.let { SolarSystem(systName, it) }
     }
 
-    fun loadSolarSystem(output: String?): SolarSystem {
-        val path = catFiles(output).first { it.name == "Sun.xml" }
-        return readSystem(path) ?: throw IllegalStateException("found no data at $path")
+
+    fun separation(binarySystem: Element): Double? {
+
+        fun separationAu(el: Element): Double? {
+            if (el.name == "separation") {
+                if (el.attributes.filter { it.name == "unit" && it.value == "AU" }.isNotEmpty()) {
+                    if (el.value.isNotEmpty()) return el.value.toDouble()
+                }
+            }
+            return null
+        }
+
+        val separations = binarySystem.getChildren("separation").mapNotNull { separationAu(it) }
+        return if (separations.isEmpty()) null
+        else if (separations.size == 1) separations[0]
+        else throw IllegalStateException("Binary system with more than one separation of unit AU")
     }
 
-    fun loadCatalog(output: String?, maxNumber: Int = Int.MAX_VALUE): List<SolarSystem> {
-        val files = catFiles(output).filter { it.fileName.toString() != "Sun.xml" }
-        return files.take(maxNumber).mapNotNull { readSystem(it) }
+
+    fun loadSolarSystem(catalogue: String?): SolarSystem {
+        val path = catFiles(catalogue).first { it.name == "Sun.xml" }
+        return readSystem(path)[0]
     }
 
-    private fun catFiles(cliOutDir: String?): List<Path> {
+    fun loadCatalog(catalogueDir: String?, maxNumber: Int = Int.MAX_VALUE): List<SolarSystem> {
+        val files = catFiles(catalogueDir).filter { it.fileName.toString() != "Sun.xml" }
+        return files.take(maxNumber).flatMap { readSystem(it) }
+    }
+
+    fun catFiles(catalogueDir: String?): List<Path> {
 
         fun catFiles(baseDir: Path, catName: String): List<Path> {
             val sysDir = baseDir.resolve(catName)
             return Files.list(sysDir).toList().filter { it.fileName.toString().endsWith("xml") }
         }
 
-        val catDir = catDir(cliOutDir)
+        val cataloguePath = catDir(catalogueDir)
         val catNames = listOf("systems", "systems_kepler")
-        return catNames.flatMap { catFiles(catDir, it) }
+        return catNames.flatMap { catFiles(cataloguePath, it) }
     }
 
     fun catDir(cliOutDir: String?): Path {
@@ -116,7 +161,7 @@ object Util {
         }
     }
 
-    private fun toStar(starElem: Element, systName: String): Star {
+    private fun toStar(starElem: Element, systName: String, binaryStarSeparation: Double?): Star {
         val starMass = toDouble(starElem, "mass")
         val starNames = starElem.children.filter { it.name == "name" }.map { it.text }
         return Star(
@@ -125,6 +170,7 @@ object Util {
             planets = starElem.children.filter { it.name == "planet" }
                 .map { toPlanet(it, systName = systName, starMass = starMass) },
             mass = starMass,
+            binaryStarSeparation = binaryStarSeparation,
         )
     }
 
@@ -135,7 +181,7 @@ object Util {
         val planetPeriod = toDouble(elem, "period")
 
         fun dist(): Double? {
-            if (planetPeriod != null && starMass != null) return ExopImages.largeSemiAxis(
+            if (planetPeriod != null && starMass != null) return largeSemiAxis(
                 planetPeriod * secondsInDay, 0.0, starMass * massSun
             )
             return null
@@ -221,6 +267,40 @@ object Util {
             println("Error splitting '$text'")
             text
         }
+    }
+
+    fun nowMonthFormatted(): String {
+        val dtf = DateTimeFormatter.ofPattern("MMM yyyy")
+        val now = LocalDateTime.now()
+        return dtf.format(now)
+    }
+
+    fun doubleFormatted(v: Double?, size: Int): String {
+        if (v == null) {
+            val f = "%${size}s"
+            return f.format("-")
+        }
+        val f = "%${size}.2f"
+        return f.format(v)
+    }
+
+    fun maxDistancePlanet(star: Star): Double? {
+        return star.planets.mapNotNull { it.dist }.maxOrNull()
+    }
+
+    /**
+     * Calculates the large semi axis of a planet
+     *
+     * @param period in seconds
+     * @param mass1 in kg
+     * @param mass2 in kg
+     * @return large semi axis (distance) in au (astronomic units)
+     */
+    fun largeSemiAxis(period: Double, mass1: Double, mass2: Double): Double {
+        val g = 6.667408e-11
+        val m = mass1 + mass2
+        val a = period * period * g * m / (PI * PI * 4.0)
+        return a.pow(1.0 / 3) / au
     }
 
 

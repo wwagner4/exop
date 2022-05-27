@@ -8,9 +8,12 @@ import java.io.Writer
 @Suppress("EnumEntryName")
 enum class Action(val description: String) {
     i01("Earth-like Distance"),
+    i01a("Earth-like Distance"),
+    i02("Same size as the solar system"),
+    it("Testimage"),
     server("Start a web-server"),
-    svgt("Test svg creation"),
     tryout("Helpful during development"),
+    stat("Create some statistics as markdown"),
 }
 
 fun main(args: Array<String>) {
@@ -29,10 +32,13 @@ fun main(args: Array<String>) {
     try {
         parser.parse(args)
         when (action) {
-            Action.i01 -> writeToFiles(action.name, output, catalogue, ExopImages::i01)
-            Action.svgt -> writeToFiles(action.name, output, catalogue, ExopImages::createTest)
+            Action.i01 -> writeToFiles(action.name, output, catalogue, ExopImagesSvg::i01)
+            Action.i01a -> writeToFiles(action.name, output, catalogue, Img01::create)
+            Action.i02 -> writeToFiles(action.name, output, catalogue, Img02::create)
+            Action.it -> writeToFiles(action.name, output, catalogue, TestImage::create)
             Action.tryout -> Tryout.tryout(output, catalogue)
             Action.server -> Server.start(output, catalogue)
+            Action.stat -> StatisticFactory.overview(catalogue)
         }
     } catch (e: IllegalStateException) {
         println("ERROR: ${e.message}")
@@ -43,7 +49,8 @@ fun writeToFiles(
     id: String,
     output: String?,
     catalogue: String?,
-    f: (writer: Writer, pageSize: Util.PageSize, catalogue: String?) -> Unit) {
+    f: (writer: Writer, pageSize: Util.PageSize, catalogue: String?) -> Unit
+) {
 
     fun writeToFile(pageSize: Util.PageSize) {
         val filename = "exop_image_${id}_${pageSize.name}.svg"
@@ -54,7 +61,9 @@ fun writeToFiles(
         println("Wrote exop image to $path")
     }
 
-    Util.PageSize.values().forEach { writeToFile(it) }
+    listOf(Util.PageSizeIso.A2).forEach { writeToFile(it) }
+    // Util.PageSize.values().forEach { writeToFile(it) }
+    // writeToFile(Util.PageSizeIso.A2)
 }
 
 private fun argDescription(): String {

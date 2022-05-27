@@ -1,19 +1,43 @@
 == current milestone
 
+current task
+
+finished tasks
+
 ---------------------------------------------------------------------------
 == open milestones
+
+Img01 in new image api
+    - reformat
+    - Show jupiter and saturn for size comparison
+
+various
+    - integrate Img02 to web-gui
+    - analyse distance (greatHalfAxis) of catalog. Evl. use instead of period
+    - GUI send only json from the server. except the svg
+    - GUI Make help and update output separate components. That are shown and hidden on click.
+
+----------------------------------------------------------------------------
+==done milestones
+
+image api (image02)
+    - add info elements
+      - title
+      - subtitle
+      - description
+      - legend
+    - font
+    - adjust border
+    - implement new image api
+
+include binaries
+    - integrate binaries in i01
+    - read also binaries as system with one star.
+    - make some statistics concerning these new systems
 
 various
     - merge request for the open exoplanet catalogue
     - deployment on entelijan
-    - include binary systems
-    - analyse distance (greatHalfAxis) of catalog. Evl. use instead of period
-    - show jupiter and saturn for size comparison
-    - send only json from the server. except the svg
-    - Make help and update output separate components. That are shown and hidden on click.
-
-----------------------------------------------------------------------------
-==done milestones
 
 homepage
     - preview image
