@@ -1,15 +1,18 @@
 == current milestone
 
+Img01 in new image api
+    - Remove planets with greater distance than max planet dist
+    - Show jupiter and saturn for size comparison
+
 current task
 
 finished tasks
+    - Limit size of lines to maxPlanetDist
+    - reformat
 
 ---------------------------------------------------------------------------
 == open milestones
 
-Img01 in new image api
-    - reformat
-    - Show jupiter and saturn for size comparison
 
 various
     - integrate Img02 to web-gui

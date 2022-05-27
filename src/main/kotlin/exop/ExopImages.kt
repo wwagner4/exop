@@ -7,6 +7,7 @@ import java.io.Writer
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import kotlin.math.abs
+import kotlin.math.min
 
 
 object Img02 {
@@ -16,6 +17,22 @@ object Img02 {
         val maxPlanetDist = 5.0
         val lineSpacing = 0.02
         val textOffsetValue = 0.001
+        val starSizeFactor = 0.002
+        val planetSizeFactor = 0.01
+        val unknownPlanetSize = 0.25
+
+        val textStyle = object : ITextStyle {
+            override val fontFamily: IFont
+                get() = IFont.TURRET
+            override val fontScale: IFontScale
+                get() = { size ->
+                    when (size) {
+                        ITextSize.L -> 0.035
+                        ITextSize.M -> 0.0125
+                        ITextSize.S -> 0.005
+                    }
+                }
+        }
 
         fun selectSystems(): List<Util.SolarSystem> {
             data class SizeSystem(
@@ -66,21 +83,29 @@ object Img02 {
                         ITextAnchor.END
                     ),
                     IUtil.multilineText(IUtil.point(1, base + 0.105), description, lineSpacing),
-                    ImgCommons.legend(legendDescs, IUtil.point(1, base + 0.26), lineSpacing),
+                    ImgCommons.legend(
+                        IUtil.point(1, base + 0.26),
+                        legendDescs,
+                        lineSpacing, textStyle,
+                        -0.004
+                    ),
                 )
             }
 
 
             val imageElements = listOf(
                 IUtil.fillRect(
-                    IColor.WHITE,
-                    IOpacity.FULL
+                    IColor.YELLOW,
+                    IOpacity.XLOW
                 )
             ) + infoElements() + IUtil.equallyDistributedElements(solarSystems) {
                 ImgCommons.systemElements(
                     it,
                     maxPlanetDist,
-                    textOffsetValue
+                    textOffsetValue,
+                    starSizeFactor,
+                    planetSizeFactor,
+                    unknownPlanetSize,
                 )
             }
 
@@ -94,18 +119,7 @@ object Img02 {
                         )
                     }
                 override val textStyle: ITextStyle
-                    get() = object : ITextStyle {
-                        override val fontFamily: IFont
-                            get() = IFont.TURRET
-                        override val fontScale: IFontScale
-                            get() = { size ->
-                                when (size) {
-                                    ITextSize.L -> 0.035
-                                    ITextSize.M -> 0.0125
-                                    ITextSize.S -> 0.005
-                                }
-                            }
-                    }
+                    get() = textStyle
             }
         }
 
@@ -119,15 +133,31 @@ object Img01 {
 
     fun create(writer: Writer, pageSize: Util.PageSize, catalogue: String?) {
 
-        val maxPlanetDist = 2.0
+        val maxPlanetDist = 1.6
         val lineSpacing = 0.02
         val textOffsetValue = 0.001
+        val starSizeFactor = 0.001
+        val planetSizeFactor = 0.017
+        val unknownPlanetSize = 0.25
+
+        val textStyle = object : ITextStyle {
+            override val fontFamily: IFont
+                get() = IFont.TURRET
+            override val fontScale: IFontScale
+                get() = { size ->
+                    when (size) {
+                        ITextSize.L -> 0.035
+                        ITextSize.M -> 0.01
+                        ITextSize.S -> 0.005
+                    }
+                }
+        }
 
         fun selectSystems(): List<Util.SolarSystem> {
 
             val numberOfSystems = 100
 
-            data class Syst(
+            data class System(
                 val minEarthDist: Double,
                 val solarSystem: Util.SolarSystem,
             )
@@ -135,7 +165,7 @@ object Img01 {
             val sol = Util.loadSolarSystem(catalogue)
 
 
-            fun minEarthDist(solarSystem: Util.SolarSystem): Syst? {
+            fun minEarthDist(solarSystem: Util.SolarSystem): System? {
                 data class Dist(
                     val dist: Double,
                     val distAbs: Double,
@@ -144,10 +174,10 @@ object Img01 {
                 val earthDists = solarSystem.star.planets.mapNotNull { it.dist }.map { it - Util.earthDist }
                 if (earthDists.isEmpty()) return null
                 val minDist: Dist? = earthDists.map { Dist(it, abs(it)) }.minByOrNull { it.distAbs }
-                return Syst(minDist!!.dist, solarSystem)
+                return System(minDist!!.dist, solarSystem)
             }
 
-            val solarSystemsDists: Map<Boolean, List<Syst>> =
+            val solarSystemsDists: Map<Boolean, List<System>> =
                 Util.loadCatalog(catalogue).mapNotNull { minEarthDist(it) }.groupBy { it.minEarthDist < 0 }
             val smaller = solarSystemsDists[true]!!.sortedBy { -it.minEarthDist }.map { it.solarSystem }
             val greater = solarSystemsDists[false]!!.sortedBy { it.minEarthDist }.map { it.solarSystem }
@@ -167,37 +197,41 @@ object Img01 {
                     ImgCommons.LegendDesc("Exoplanet, unknown size", IColor.GREEN, IOpacity.LOW),
                 )
                 val description = listOf(
-                    "Planetary systems containing one planet that has about",
-                    "the same distance to its star as the earth to the sun.",
+                    "Planetary systems containing one",
+                    "planet that has about the same",
+                    "distance to its star as the",
+                    "earth to the sun.",
                 )
-                val base = 0.04
+                val subTitle = listOf(
+                    "Earth-like Distance.",
+                    "Creation date: ${ImgCommons.datStr()}",
+                )
+                val base = -0.03
 
                 return listOf(
                     IUtil.baseText(
                         IUtil.point(1, base), "Known Planetary Systems", ITextSize.L, ITextAnchor.END
                     ),
-                    IUtil.baseText(
-                        IUtil.point(1, base + 0.045),
-                        "Earth-like Distance. Creation date: ${ImgCommons.datStr()}",
-                        ITextSize.M,
-                        ITextAnchor.END
-                    ),
-                    IUtil.multilineText(IUtil.point(1, base + 0.105), description, lineSpacing),
-                    ImgCommons.legend(legendDescs, IUtil.point(1, base + 0.26), lineSpacing),
+                    IUtil.multilineText(IUtil.point(1, base + 0.045), subTitle, lineSpacing),
+                    ImgCommons.legend(IUtil.point(1, base + 0.105), legendDescs, lineSpacing, textStyle, -0.003),
+                    IUtil.multilineText(IUtil.point(1, base + 0.2), description, lineSpacing),
                 )
             }
 
 
             val imageElements = listOf(
                 IUtil.fillRect(
-                    IColor.WHITE,
-                    IOpacity.FULL
+                    IColor.YELLOW,
+                    IOpacity.XLOW
                 )
             ) + infoElements() + IUtil.equallyDistributedElements(solarSystems) {
                 ImgCommons.systemElements(
                     it,
                     maxPlanetDist,
-                    textOffsetValue
+                    textOffsetValue,
+                    starSizeFactor,
+                    planetSizeFactor,
+                    unknownPlanetSize,
                 )
             }
 
@@ -206,23 +240,12 @@ object Img01 {
                     get() {
                         return IUtil.page(
                             IUtil.borderCanvas(
-                                imageElements, 0.05, 0.1, 0.05, 0.07
+                                imageElements, 0.1, 0.1, 0.05, 0.08
                             ), pageSize
                         )
                     }
                 override val textStyle: ITextStyle
-                    get() = object : ITextStyle {
-                        override val fontFamily: IFont
-                            get() = IFont.TURRET
-                        override val fontScale: IFontScale
-                            get() = { size ->
-                                when (size) {
-                                    ITextSize.L -> 0.035
-                                    ITextSize.M -> 0.0125
-                                    ITextSize.S -> 0.005
-                                }
-                            }
-                    }
+                    get() = textStyle
             }
         }
 
@@ -349,26 +372,36 @@ object ImgCommons {
         val opacity: IOpacity,
     )
 
-    fun legend(legendDescs: List<LegendDesc>, origin: IPoint, lineSpacing: Double): ICollection {
-        fun legendCircle(legendDesc: LegendDesc): IElement {
+    fun legend(
+        origin: IPoint,
+        legendDescs: List<LegendDesc>,
+        lineSpacing: Double,
+        textStyle: ITextStyle,
+        circleYOffset: Double
+    ): ICollection {
+        val fontScale = textStyle.fontScale(ITextSize.M)
+        val circleSize = fontScale * 0.5
+        val circleXOffset = fontScale * 1.6
+
+        fun circle(legendDesc: LegendDesc): IElement {
             return object : ICircle {
                 override val radius: Double
-                    get() = 0.007
+                    get() = circleSize
                 override val color: IColor
                     get() = legendDesc.color
                 override val opacity: IOpacity
                     get() = legendDesc.opacity
                 override val origin: IPoint
-                    get() = IUtil.point(0.03, -0.006)
+                    get() = IUtil.point(circleXOffset, circleYOffset)
             }
         }
 
-        fun txtElem(index: Int, legendDesc: LegendDesc): IElement {
+        fun text(index: Int, legendDesc: LegendDesc): IElement {
             return object : ICollection {
                 override val elements: List<IElement>
                     get() = listOf(
                         IUtil.baseText(IUtil.point(0, 0), legendDesc.text, ITextSize.M, ITextAnchor.END),
-                        legendCircle(legendDesc),
+                        circle(legendDesc),
                     )
                 override val origin: IPoint
                     get() = IUtil.point(0, index * lineSpacing)
@@ -378,13 +411,20 @@ object ImgCommons {
 
         return object : ICollection {
             override val elements: List<IElement>
-                get() = legendDescs.withIndex().map { txtElem(it.index, it.value) }
+                get() = legendDescs.withIndex().map { text(it.index, it.value) }
             override val origin: IPoint
                 get() = origin
         }
     }
 
-    fun systemElements(solarSystem: Util.SolarSystem, maxPlanetDist: Double, textOffsetValue: Double): List<IElement> {
+    fun systemElements(
+        solarSystem: Util.SolarSystem,
+        maxPlanetDist: Double,
+        textOffsetValue: Double,
+        starSizeFactor: Double,
+        planetSizeFactor: Double,
+        unknownPlanetSize: Double,
+    ): List<IElement> {
 
         val textOffset = IUtil.point(textOffsetValue, -textOffsetValue)
         val textOffsetEnd = IUtil.point(-textOffsetValue, -textOffsetValue)
@@ -404,7 +444,6 @@ object ImgCommons {
             }
 
             fun circle(): IElement {
-                val starSizeFactor = 0.002
                 val starColor = if (isSolarSystem(solarSystem)) IColor.RED
                 else IColor.ORANGE
                 val (starOpacity, starRadius) = if (solarSystem.star.radius == null) Pair(IOpacity.LOW, starSizeFactor)
@@ -432,8 +471,6 @@ object ImgCommons {
         }
 
         fun planet(planet: Util.Planet, isSolarPlanet: Boolean, maxPlanetDist: Double): IElement {
-            val planetSizeFactor = 0.01
-            val unknownPlanetSize = 0.25
 
             val x = (planet.dist ?: 1.0) / maxPlanetDist
             fun circle(): IElement {
@@ -466,12 +503,15 @@ object ImgCommons {
 
         fun line(solarSystem: Util.SolarSystem): IElement {
 
-            val size = solarSystem.star.planets.mapNotNull { it.dist }.maxOf { it } / maxPlanetDist
+            val relSize = solarSystem.star.planets.mapNotNull { it.dist }.maxOf { it } / maxPlanetDist
+            println("-- line maxPlanerDist: $maxPlanetDist relSize: $relSize")
+            val size = min(1.0, relSize)
             return object : ILineHorizontal {
                 override val length: Double
                     get() = size
                 override val strokeWidth: Double
-                    get() = 0.02
+                    //                get() = 0.02
+                    get() = 0.2
                 override val color: IColor
                     get() = IColor.BLUE
                 override val opacity: IOpacity
