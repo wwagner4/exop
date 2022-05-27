@@ -14,7 +14,7 @@ object Img02 {
 
     fun create(writer: Writer, pageSize: Util.PageSize, catalogue: String?) {
 
-        val maxPlanetDist = 5.0
+        val maxPlanetDist = 5.21
         val lineSpacing = 0.02
         val textOffsetValue = 0.001
         val starSizeFactor = 0.002
@@ -470,9 +470,10 @@ object ImgCommons {
             }
         }
 
-        fun planet(planet: Util.Planet, isSolarPlanet: Boolean, maxPlanetDist: Double): IElement {
+        fun planet(planet: Util.Planet, isSolarPlanet: Boolean, maxPlanetDist: Double): IElement? {
 
             val x = (planet.dist ?: 1.0) / maxPlanetDist
+            if (x > 1.0) return null
             fun circle(): IElement {
                 val color = if (isSolarPlanet) IColor.RED else IColor.GREEN
                 val radius = (planet.radius ?: unknownPlanetSize) * planetSizeFactor
@@ -504,14 +505,12 @@ object ImgCommons {
         fun line(solarSystem: Util.SolarSystem): IElement {
 
             val relSize = solarSystem.star.planets.mapNotNull { it.dist }.maxOf { it } / maxPlanetDist
-            println("-- line maxPlanerDist: $maxPlanetDist relSize: $relSize")
             val size = min(1.0, relSize)
             return object : ILineHorizontal {
                 override val length: Double
                     get() = size
                 override val strokeWidth: Double
-                    //                get() = 0.02
-                    get() = 0.2
+                    get() = 0.03
                 override val color: IColor
                     get() = IColor.BLUE
                 override val opacity: IOpacity
@@ -522,14 +521,10 @@ object ImgCommons {
         }
 
         val isSolar = isSolarSystem(solarSystem)
-
-        return listOf(line(solarSystem), star(), systemName()) + solarSystem.star.planets.map {
-            planet(
-                it,
-                isSolar,
-                maxPlanetDist
-            )
+        val planetElems = solarSystem.star.planets.mapNotNull {
+            planet(it, isSolar, maxPlanetDist)
         }
+        return listOf(line(solarSystem), star(), systemName()) + planetElems
     }
 
 
