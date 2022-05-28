@@ -54,12 +54,25 @@ object Server {
                 }
                 get("/image") {
                     val size: String = call.request.queryParameters["size"] ?: "A4"
+                    val name: String = call.request.queryParameters["name"] ?: "img01"
                     val ps = Util.PageSizeIso.valueOf(size)
-                    println("get $size image size: $ps")
+                    println("get $size $name")
                     val sw = StringWriter()
-                    Img01.create(sw, ps, null)
-                    val content = sw.buffer.toString()
-                    call.respondText(content, contentType = ContentType.Image.SVG)
+                    when (name) {
+                        "img01" -> {
+                            Img01.create(sw, ps, null)
+                            val content = sw.buffer.toString()
+                            call.respondText(content, contentType = ContentType.Image.SVG)
+                        }
+                        "img02" -> {
+                            Img02.create(sw, ps, null)
+                            val content = sw.buffer.toString()
+                            call.respondText(content, contentType = ContentType.Image.SVG)
+                        }
+                        else -> {
+                            throw IllegalStateException("Unknown name $name")
+                        }
+                    }
                 }
                 get("/react") {
                     val file = reactBuildDir.resolve("index.html")
