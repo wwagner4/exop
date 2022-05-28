@@ -136,7 +136,7 @@ object Img01 {
         val maxPlanetDist = 1.6
         val lineSpacing = 0.02
         val textOffsetValue = 0.001
-        val starSizeFactor = 0.001
+        val starSizeFactor = 0.0006
         val planetSizeFactor = 0.017
         val unknownPlanetSize = 0.25
 
