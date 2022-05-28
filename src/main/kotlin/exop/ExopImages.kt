@@ -93,21 +93,17 @@ object Img02 {
             }
 
 
-            val imageElements = listOf(
-                IUtil.fillRect(
-                    IColor.YELLOW,
-                    IOpacity.XLOW
-                )
-            ) + infoElements() + IUtil.equallyDistributedElements(solarSystems) {
-                ImgCommons.systemElements(
-                    it,
-                    maxPlanetDist,
-                    textOffsetValue,
-                    starSizeFactor,
-                    planetSizeFactor,
-                    unknownPlanetSize,
-                )
-            }
+            val imageElements = infoElements() +
+                    IUtil.equallyDistributedElements(solarSystems) {
+                        ImgCommons.systemElements(
+                            it,
+                            maxPlanetDist,
+                            textOffsetValue,
+                            starSizeFactor,
+                            planetSizeFactor,
+                            unknownPlanetSize,
+                        )
+                    }
 
             return object : IImage {
                 override val page: IPage
@@ -219,21 +215,17 @@ object Img01 {
             }
 
 
-            val imageElements = listOf(
-                IUtil.fillRect(
-                    IColor.YELLOW,
-                    IOpacity.XLOW
-                )
-            ) + infoElements() + IUtil.equallyDistributedElements(solarSystems) {
-                ImgCommons.systemElements(
-                    it,
-                    maxPlanetDist,
-                    textOffsetValue,
-                    starSizeFactor,
-                    planetSizeFactor,
-                    unknownPlanetSize,
-                )
-            }
+            val imageElements =
+                infoElements() + IUtil.equallyDistributedElements(solarSystems) {
+                    ImgCommons.systemElements(
+                        it,
+                        maxPlanetDist,
+                        textOffsetValue,
+                        starSizeFactor,
+                        planetSizeFactor,
+                        unknownPlanetSize,
+                    )
+                }
 
             return object : IImage {
                 override val page: IPage

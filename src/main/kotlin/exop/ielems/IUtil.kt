@@ -20,26 +20,14 @@ object IUtil {
     }
 
     fun page(canvas: ICanvas, pageSize: Util.PageSize): IPage {
-        val backRectangle = object : IRectangle {
-            override val width: Double
-                get() = 1.0
-            override val height: Double
-                get() = 1.0
-            override val color: IColor
-                get() = IColor.YELLOW
-            override val opacity: IOpacity
-                get() = IOpacity.XLOW
-            override val origin: IPoint
-                get() = point(0, 0)
-        }
-
+        val backRectangle = fillRect(IColor.WHITE, IOpacity.FULL)
         val bodyCanvas = object : ICanvas {
             override val width: Double
                 get() = 1.0
             override val height: Double
                 get() = 1.0
             override val elements: List<IElement>
-                get() = listOf(canvas, backRectangle)
+                get() = listOf(backRectangle, canvas)
             override val origin: IPoint
                 get() = point(0, 0)
         }
