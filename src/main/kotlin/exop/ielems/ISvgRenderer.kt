@@ -8,7 +8,7 @@ import org.jdom2.output.Format
 import org.jdom2.output.XMLOutputter
 import java.io.Writer
 
-object SvgRenderer {
+object ISvgRenderer {
 
     private val svgNamespace = Namespace.getNamespace("http://www.w3.org/2000/svg")
     private val fontFamily = Font.Family.league
@@ -184,50 +184,39 @@ object SvgRenderer {
     }
 
     object Util {
+
+        private fun sum(v: IndexedValue<List<Double>>): Double {
+            return v.value.slice(0..v.index).reduce { acc, i -> acc * i }
+        }
+
         /**
          * Calculates the distance from the zero point of a page in a hierarchy of relative canvases
          */
         fun absDistance(base: Double, canvasWith: List<Double>, canvasOffset: List<Double>, relOffset: Double): Double {
-
-            fun sum(v: IndexedValue<List<Double>>): Double {
-                return v.value.slice(0..v.index).reduce { acc, i -> acc * i }
-            }
-
-            if (canvasWith.isEmpty()) return relOffset
-
-            val widthList = listOf(base) + canvasWith
-            val offsetLists = canvasOffset + listOf(relOffset)
-
-            val indexed = List(widthList.size) { widthList }.withIndex()
-            val indexedSum = indexed.map(::sum)
-
-            val zipped = indexedSum.zip(offsetLists)
-            val zippedMul = zipped.map { it.first * it.second }
-
-            return zippedMul.sum()
+            return if (canvasWith.isEmpty()) relOffset
+            else zippedProduct(base, canvasWith, canvasOffset, relOffset).sum()
         }
 
         /**
          * Calculates the absolute width inside a hierarchy of relative canvases
          */
         fun absWidth(base: Double, canvasWith: List<Double>, canvasOffset: List<Double>, relWidth: Double): Double {
+            return if (canvasWith.isEmpty()) relWidth
+            else zippedProduct(base, canvasWith, canvasOffset, relWidth).last()
+        }
 
-            fun sum(v: IndexedValue<List<Double>>): Double {
-                return v.value.slice(0..v.index).reduce { acc, i -> acc * i }
-            }
-
-            if (canvasWith.isEmpty()) return relWidth
-
+        private fun zippedProduct(
+            base: Double,
+            canvasWith: List<Double>,
+            canvasOffset: List<Double>,
+            relOffset: Double
+        ): List<Double> {
             val widthList = listOf(base) + canvasWith
-            val offsetLists = canvasOffset + listOf(relWidth)
-
+            val offsetLists = canvasOffset + listOf(relOffset)
             val indexed = List(widthList.size) { widthList }.withIndex()
             val indexedSum = indexed.map(::sum)
-
             val zipped = indexedSum.zip(offsetLists)
-            val zippedMul = zipped.map { it.first * it.second }
-
-            return zippedMul.last()
+            return zipped.map { it.first * it.second }
         }
 
         private fun width(coll: ICollection): Double {

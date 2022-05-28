@@ -19,13 +19,26 @@ object IUtil {
         return objects.withIndex().map { element(it, objects.size) }
     }
 
-    fun page(canvas: ICanvas, pageSize: Util.PageSize): IPage = object : IPage {
-        override val width: Double
-            get() = pageSize.width
-        override val height: Double
-            get() = pageSize.height
-        override val canvas: ICanvas
-            get() = canvas
+    fun page(canvas: ICanvas, pageSize: Util.PageSize): IPage {
+        val backRectangle = fillRect(IColor.WHITE, IOpacity.FULL)
+        val bodyCanvas = object : ICanvas {
+            override val width: Double
+                get() = 1.0
+            override val height: Double
+                get() = 1.0
+            override val elements: List<IElement>
+                get() = listOf(backRectangle, canvas)
+            override val origin: IPoint
+                get() = point(0, 0)
+        }
+        return object : IPage {
+            override val width: Double
+                get() = pageSize.width
+            override val height: Double
+                get() = pageSize.height
+            override val canvas: ICanvas
+                get() = bodyCanvas
+        }
     }
 
     fun baseText(
