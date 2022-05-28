@@ -17,8 +17,8 @@ object Img02 {
         val maxPlanetDist = 5.21
         val lineSpacing = 0.02
         val textOffsetValue = 0.001
-        val starSizeFactor = 0.002
-        val planetSizeFactor = 0.01
+        val starSizeFactor = 0.003
+        val planetSizeFactor = 0.008
         val unknownPlanetSize = 0.25
 
         val textStyle = object : ITextStyle {
@@ -70,7 +70,7 @@ object Img02 {
                     "Planetary systems containing at",
                     "least one planet with known size.",
                 )
-                val base = 0.04
+                val base = 0.026
 
                 return listOf(
                     IUtil.baseText(
@@ -114,7 +114,7 @@ object Img02 {
                     get() {
                         return IUtil.page(
                             IUtil.borderCanvas(
-                                imageElements, 0.05, 0.1, 0.05, 0.07
+                                imageElements, 0.05, 0.06, 0.05, 0.09
                             ), pageSize
                         )
                     }
@@ -380,8 +380,8 @@ object ImgCommons {
         circleYOffset: Double
     ): ICollection {
         val fontScale = textStyle.fontScale(ITextSize.M)
-        val circleSize = fontScale * 0.5
-        val circleXOffset = fontScale * 1.6
+        val circleSize = fontScale * 0.35
+        val circleXOffset = fontScale * 1.4
 
         fun circle(legendDesc: LegendDesc): IElement {
             return object : ICircle {
