@@ -57,7 +57,7 @@ object Server {
                     val ps = Util.PageSizeIso.valueOf(size)
                     println("get $size image size: $ps")
                     val sw = StringWriter()
-                    ExopImagesSvg.i01(sw, ps, null)
+                    Img01.create(sw, ps, null)
                     val content = sw.buffer.toString()
                     call.respondText(content, contentType = ContentType.Image.SVG)
                 }

@@ -121,7 +121,7 @@ object Img02 {
 
         val systems = selectSystems()
         val image = createImage(systems)
-        SvgRenderer.writeSvg(writer, image)
+        ISvgRenderer.writeSvg(writer, image)
     }
 }
 
@@ -243,7 +243,7 @@ object Img01 {
 
         val systems = selectSystems()
         val image = createImage(systems)
-        SvgRenderer.writeSvg(writer, image)
+        ISvgRenderer.writeSvg(writer, image)
     }
 }
 

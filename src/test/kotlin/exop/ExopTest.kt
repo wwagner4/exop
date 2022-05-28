@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
-import exop.ielems.SvgRenderer.Util as ru
+import exop.ielems.ISvgRenderer.Util as ru
 
 internal class ExopTest {
 
