@@ -10,7 +10,6 @@ enum class Action(val description: String) {
     i01("Earth-like Distance"),
     i01a("Earth-like Distance"),
     i02("Same size as the solar system"),
-    it("Testimage"),
     server("Start a web-server"),
     tryout("Helpful during development"),
     stat("Create some statistics as markdown"),
@@ -35,7 +34,6 @@ fun main(args: Array<String>) {
             Action.i01 -> writeToFiles(action.name, output, catalogue, ExopImagesSvg::i01)
             Action.i01a -> writeToFiles(action.name, output, catalogue, Img01::create)
             Action.i02 -> writeToFiles(action.name, output, catalogue, Img02::create)
-            Action.it -> writeToFiles(action.name, output, catalogue, TestImage::create)
             Action.tryout -> Tryout.tryout(output, catalogue)
             Action.server -> Server.start(output, catalogue)
             Action.stat -> StatisticFactory.overview(catalogue)
