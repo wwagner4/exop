@@ -1,6 +1,7 @@
 import axios from "axios";
 import {useState} from "react";
 import img01 from "./img01a.png";
+import img02 from "./img02.png";
 
 interface MyProps {
     url: string
@@ -39,19 +40,36 @@ export default function Main(props: MyProps) {
                     <tr>
                         <td><img className={"list-img"} alt={"img01"} src={img01}></img></td>
                         <td>Earth-like Distance<br/>
-                            <button className="info-text" onClick={() => createImage("A4")}>A4</button>
+                            <button className="info-text" onClick={() => createImage("img01", "A4")}>A4</button>
                             &nbsp;&nbsp;
-                            <button className="info-text" onClick={() => createImage("A3")}>A3</button>
+                            <button className="info-text" onClick={() => createImage("img01", "A3")}>A3</button>
                             &nbsp;&nbsp;
-                            <button className="info-text" onClick={() => createImage("A2")}>A2</button>
+                            <button className="info-text" onClick={() => createImage("img01", "A2")}>A2</button>
                             &nbsp;&nbsp;
-                            <button className="info-text" onClick={() => createImage("A1")}>A1</button>
+                            <button className="info-text" onClick={() => createImage("img01", "A1")}>A1</button>
                             &nbsp;&nbsp;
-                            <button className="info-text" onClick={() => createImage("A0")}>A0</button>
+                            <button className="info-text" onClick={() => createImage("img01", "A0")}>A0</button>
                             &nbsp;&nbsp;
                         </td>
                         <td>Planetary systems containing one planet that has about the same <br/>
                             distance to its star as the earth to the sun
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><img className={"list-img"} alt={"img02"} src={img02}></img></td>
+                        <td>Planet sizes<br/>
+                            <button className="info-text" onClick={() => createImage("img02", "A4")}>A4</button>
+                            &nbsp;&nbsp;
+                            <button className="info-text" onClick={() => createImage("img02", "A3")}>A3</button>
+                            &nbsp;&nbsp;
+                            <button className="info-text" onClick={() => createImage("img02", "A2")}>A2</button>
+                            &nbsp;&nbsp;
+                            <button className="info-text" onClick={() => createImage("img02", "A1")}>A1</button>
+                            &nbsp;&nbsp;
+                            <button className="info-text" onClick={() => createImage("img02", "A0")}>A0</button>
+                            &nbsp;&nbsp;
+                        </td>
+                        <td>Planetary systems containing at least one planet with known size.<br/>
                         </td>
                     </tr>
                     </tbody>
@@ -90,9 +108,9 @@ export default function Main(props: MyProps) {
             })
     }
 
-    function createImage(size: string) {
+    function createImage(name: string, size: string) {
         console.log("create image")
-        openInNewTab(`${props.url}/image?size=${size}`)
+        openInNewTab(`${props.url}/image?name=${name}&size=${size}`)
     }
 
     function showCreateImage() {
