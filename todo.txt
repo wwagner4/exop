@@ -1,20 +1,24 @@
 == current milestone
 
-Img01 in new image api
-    - Show jupiter and saturn for size comparison
+img02 in gui
+    - add star creation gui
+    - deployment entelijan
 
 current task
+    - adapt readme for gui development
 
 finished tasks
-    - Remove planets with greater distance than max planet dist
-    - Limit size of lines to maxPlanetDist
-    - reformat
+    - make img02 callable from server
 
 ---------------------------------------------------------------------------
 == open milestones
 
+gui improvement
+    - select page size separate
+    - fix blank on ? after update
 
 various
+    - Show jupiter and saturn for size comparison
     - integrate Img02 to web-gui
     - analyse distance (greatHalfAxis) of catalog. Evl. use instead of period
     - GUI send only json from the server. except the svg
@@ -22,6 +26,11 @@ various
 
 ----------------------------------------------------------------------------
 ==done milestones
+
+Img01 in new image api
+    - Remove planets with greater distance than max planet dist
+    - Limit size of lines to maxPlanetDist
+    - reformat
 
 image api (image02)
     - add info elements
