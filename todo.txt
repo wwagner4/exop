@@ -1,13 +1,13 @@
 == current milestone
 
 img02 in gui
-    - add star creation gui
-    - deployment entelijan
 
 current task
-    - adapt readme for gui development
+    - deployment entelijan
 
 finished tasks
+    - adapt readme for gui development
+    - add star creation gui
     - make img02 callable from server
 
 ---------------------------------------------------------------------------
