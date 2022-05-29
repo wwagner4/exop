@@ -28,6 +28,7 @@ RUN bash run_build
 WORKDIR /react
 RUN cp -r /exop/src/exop-react/build/* .
 ENV EXOP_REACT_DIR=/react
+ENV REACT_BUILD_DIR=/react
 
 WORKDIR /app
 RUN git clone https://github.com/OpenExoplanetCatalogue/open_exoplanet_catalogue.git
