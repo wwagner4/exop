@@ -18,11 +18,10 @@ git clone git clone https://github.com/OpenExoplanetCatalogue/open_exoplanet_cat
 ### start the kotlin server
 ./gradlew run --arg server
 
-
-cd src/exopreact
+cd src/exop-react
 
 ### Ones at the beginning
-npm install
+npm insta
 
 ### Start the development server on localhost:8080
 ./start_development_server
